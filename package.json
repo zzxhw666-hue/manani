@@ -1,0 +1,14 @@
+{
+  "name": "manila-online-board-game",
+  "version": "1.0.0",
+  "private": true,
+  "description": "《马尼拉》3-5 人房间制联机桌游",
+  "scripts": {
+    "start": "node server.js",
+    "tunnel": "./tools/cloudflared tunnel --url http://localhost:4173",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

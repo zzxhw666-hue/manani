@@ -1,0 +1,16 @@
+services:
+  manila:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "4173:4173"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4173
+      DATA_DIR: /data
+    volumes:
+      - manila-data:/data
+
+volumes:
+  manila-data:
