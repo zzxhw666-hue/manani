@@ -176,6 +176,8 @@ window.MANILA_UI = (function () {
     } else if (phase === 'pirate_destination') {
       var nextWare = room.plunderQueue[0];
       html += '<div class="action-copy"><b>处置' + D.wares[nextWare].name + '船</b><p>海盗奖金不受去向影响；送港会让股票涨价。</p></div>' + (mine ? '<div class="move-buttons"><button class="btn primary" data-destination="port" type="button">送往港口</button><button class="btn danger" data-destination="shipyard" type="button">送往船厂</button></div>' : '<div class="waiting-wave">等待海盗船长决定</div>');
+    } else if (phase === 'settlement_review') {
+      html += '<div class="action-copy"><b>第 ' + room.round + ' 次航程结算</b><p>收支已冻结，结算页将保留至' + esc(room.settlement.confirmerRole) + '确认。</p></div><div class="waiting-wave">' + (mine ? '请在结算页底部确认' : '等待 ' + esc(nickname(room, room.settlement.confirmerId)) + ' 确认') + '</div>';
     } else if (phase === 'finished') {
       html += '<div class="winner-mini">🏆 ' + room.winners.map(function (pid) { return esc(nickname(room, pid)); }).join('、') + ' 获胜</div>';
     } else {
@@ -189,7 +191,7 @@ window.MANILA_UI = (function () {
       var count = me.shares ? me.shares[ware] : 0;
       var mortgaged = me.mortgaged ? me.mortgaged[ware] : 0;
       var free = count - mortgaged;
-      return '<div class="share-row" style="--ware:' + D.wares[ware].color + '"><span class="share-gem">' + D.wares[ware].icon + '</span><div><strong>' + D.wares[ware].name + '</strong><small>' + count + ' 股 · 市值 ' + (count * D.marketTrack[room.market[ware]]) + '₱' + (mortgaged ? ' · 抵押 ' + mortgaged : '') + '</small></div><div class="share-actions">' + (free > 0 && room.status === 'playing' ? '<button data-mortgage="' + ware + '" title="抵押得 12₱">借</button>' : '') + (mortgaged > 0 && me.cash >= 15 && room.status === 'playing' ? '<button data-redeem="' + ware + '" title="支付 15₱ 赎回">赎</button>' : '') + '</div></div>';
+      return '<div class="share-row" style="--ware:' + D.wares[ware].color + '"><span class="share-gem">' + D.wares[ware].icon + '</span><div><strong>' + D.wares[ware].name + '</strong><small>' + count + ' 股 · 市值 ' + (count * D.marketTrack[room.market[ware]]) + '₱' + (mortgaged ? ' · 抵押 ' + mortgaged : '') + '</small></div><div class="share-actions">' + (free > 0 && room.status === 'playing' && room.phase !== 'settlement_review' ? '<button data-mortgage="' + ware + '" title="抵押得 12₱">借</button>' : '') + (mortgaged > 0 && me.cash >= 15 && room.status === 'playing' && room.phase !== 'settlement_review' ? '<button data-redeem="' + ware + '" title="支付 15₱ 赎回">赎</button>' : '') + '</div></div>';
     }).join('');
     var stockValue = D.wareIds.reduce(function (sum, ware) { return sum + (me.shares ? me.shares[ware] : 0) * D.marketTrack[room.market[ware]]; }, 0);
     return '<section class="assets box"><div class="asset-head"><div><span>我的现金</span><strong>' + me.cash + '<small>₱</small></strong></div><div><span>股票市值</span><strong>' + stockValue + '<small>₱</small></strong></div><div><span>可用帮手</span><strong>' + me.pawnsAvailable + '<small>/' + me.pawnsTotal + '</small></strong></div></div><div class="share-list">' + shareRows + '</div><p class="loan-note">抵押 1 股获得 12₱；支付 15₱ 可赎回。</p></section>';
@@ -209,6 +211,29 @@ window.MANILA_UI = (function () {
   function scoreHtml(room) {
     if (room.status !== 'finished') return '';
     return '<section class="score-overlay box"><span class="trophy">🏆</span><div><span class="top-kicker">FINAL FORTUNE</span><h2>最终财富</h2><p>' + room.winners.map(function (pid) { return esc(nickname(room, pid)); }).join('、') + ' 成为马尼拉最成功的商人</p></div><div class="score-table">' + room.scores.map(function (score, index) { return '<div class="score-row ' + (index === 0 ? 'winner' : '') + '"><b>' + (index + 1) + '</b><strong>' + esc(score.nickname) + '</strong><span>现金 ' + score.cash + '</span><span>股票 ' + score.stockValue + '</span><span>债务 −' + score.debt + '</span><em>' + score.total + '₱</em></div>'; }).join('') + '</div></section>';
+  }
+
+  function cashText(value, signed) {
+    var number = Number(value || 0);
+    var text = Number.isInteger(number) ? String(number) : number.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+    return (signed && number > 0 ? '+' : '') + text + '₱';
+  }
+
+  function settlementHtml(room, me) {
+    var settlement = room.settlement;
+    if (room.phase !== 'settlement_review' || !settlement) return '';
+    var canConfirm = settlement.confirmerId === me.id;
+    var playerCards = settlement.players.map(function (player) {
+      var entries = player.entries.length ? player.entries.map(function (entry) {
+        var amountClass = entry.amount > 0 ? 'gain' : 'loss';
+        var category = entry.category === 'financing' ? '<i>融资</i>' : '';
+        return '<div class="cash-entry ' + amountClass + '"><span>' + esc(entry.label) + category + '</span><b>' + cashText(entry.amount, true) + '</b></div>';
+      }).join('') : '<div class="cash-entry empty"><span>本轮无现金收支</span><b>0₱</b></div>';
+      var expenseText = player.totalExpense > 0 ? '−' + cashText(player.totalExpense) : cashText(0);
+      return '<article class="settlement-player ' + (player.pid === me.id ? 'me' : '') + '" style="--player:' + player.color + '"><header><span class="player-dot" style="--player:' + player.color + '"></span><div><strong>' + esc(player.nickname) + (player.pid === me.id ? ' · 你' : '') + '</strong><small>' + (player.isBot ? '人机商人' : '玩家商人') + '</small></div><b>期初 ' + cashText(player.openingCash) + '</b></header><div class="cash-entries">' + entries + '</div><div class="cash-totals"><span>总收入 <b class="gain">' + cashText(player.totalIncome, true) + '</b></span><span>总支出 <b class="loss">' + expenseText + '</b></span><span>本轮净变化 <b class="' + (player.net >= 0 ? 'gain' : 'loss') + '">' + cashText(player.net, true) + '</b></span></div><footer><span>本轮结束现金</span><strong>' + cashText(player.closingCash) + '</strong></footer></article>';
+    }).join('');
+    var confirmCopy = esc(settlement.confirmerRole) + ' · ' + esc(nickname(room, settlement.confirmerId));
+    return '<section class="settlement-page"><div class="settlement-sheet"><header class="settlement-heading"><div><span class="top-kicker">VOYAGE ' + settlement.round + ' · CASH STATEMENT</span><h1>本轮航程收支结算</h1><p>每笔收入与亏损已按玩家归集，确认前不会进入' + (settlement.endsGame ? '最终胜负' : '下一次航程') + '。</p></div><div class="settlement-seal"><span>' + settlement.round + '</span><small>VOYAGE</small></div></header><div class="settlement-players">' + playerCards + '</div><footer class="settlement-confirm"><div><span>本轮确认人</span><strong>' + confirmCopy + '</strong></div>' + (canConfirm ? '<button class="btn primary" data-confirm-settlement type="button">已核对，' + (settlement.endsGame ? '查看最终排名' : '进入下一轮') + '</button>' : '<div class="settlement-waiting">等待 ' + esc(nickname(room, settlement.confirmerId)) + ' 确认结算…</div>') + '</footer></div></section>';
   }
 
   function finishSpecialEvent(node, delay) {
@@ -314,6 +339,7 @@ window.MANILA_UI = (function () {
     root.querySelectorAll('[data-destination]').forEach(function (button) { button.onclick = function () { handlers.act('pirate-destination', { area: button.dataset.destination }); }; });
     root.querySelectorAll('[data-mortgage]').forEach(function (button) { button.onclick = function () { handlers.act('mortgage', { ware: button.dataset.mortgage }); }; });
     root.querySelectorAll('[data-redeem]').forEach(function (button) { button.onclick = function () { handlers.act('redeem', { ware: button.dataset.redeem }); }; });
+    var confirmSettlement = root.querySelector('[data-confirm-settlement]'); if (confirmSettlement) confirmSettlement.onclick = function () { handlers.act('confirm-settlement'); };
     root.querySelectorAll('[data-log-tab]').forEach(function (button) {
       button.onclick = function () {
         root.querySelectorAll('[data-log-tab]').forEach(function (item) { item.classList.toggle('active', item === button); });
@@ -329,7 +355,7 @@ window.MANILA_UI = (function () {
     var self = room.players.find(function (player) { return player.id === me.id; }) || me;
     renderHeader(room, self, handlers);
     var root = document.getElementById('game-root');
-    root.innerHTML = scoreHtml(room) + '<div class="game-layout"><main class="game-main">' + marketHtml(room) + (room.boats.length ? boardHtml(room, self) : '') + '</main><aside class="game-side">' + currentActionHtml(room, self) + assetsHtml(room, self) + playersHtml(room, self) + logChatHtml(room) + '</aside></div>';
+    root.innerHTML = settlementHtml(room, self) + scoreHtml(room) + '<div class="game-layout"><main class="game-main">' + marketHtml(room) + (room.boats.length ? boardHtml(room, self) : '') + '</main><aside class="game-side">' + currentActionHtml(room, self) + assetsHtml(room, self) + playersHtml(room, self) + logChatHtml(room) + '</aside></div>';
     bindGame(root, room, self, handlers);
     syncRoomEvents(room);
   }

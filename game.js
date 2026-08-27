@@ -60,6 +60,32 @@ function playerName(room, pid) {
   return playerOf(room, pid)?.nickname || '未知玩家';
 }
 
+function money(value) {
+  return Math.round(Number(value) * 100) / 100;
+}
+
+function startVoyageLedger(room) {
+  room.voyageLedger = {
+    round: room.round,
+    counter: 0,
+    openingCash: Object.fromEntries(room.players.map((player) => [player.id, money(player.cash)])),
+    entries: [],
+  };
+}
+
+function recordCash(room, player, amount, label, category = 'income') {
+  if (!amount) return;
+  if (!room.voyageLedger || room.voyageLedger.round !== room.round) startVoyageLedger(room);
+  room.voyageLedger.counter += 1;
+  room.voyageLedger.entries.push({
+    id: `cash_${room.round}_${room.voyageLedger.counter}`,
+    pid: player.id,
+    amount: money(amount),
+    label,
+    category,
+  });
+}
+
 function nextPlayerId(room, pid, allowed) {
   const start = room.players.findIndex((player) => player.id === pid);
   for (let step = 1; step <= room.players.length; step += 1) {
@@ -122,6 +148,8 @@ function createRoom({ code, name, maxPlayers, host }) {
     eventCounter: 0,
     events: [],
     lockedUntil: 0,
+    voyageLedger: null,
+    settlement: null,
   };
   addPlayer(room, host);
   nowLog(room, `${host.nickname} 创建了房间`);
@@ -204,6 +232,7 @@ function mortgageOne(room, player, preferredWare) {
   if (!ware) return false;
   player.mortgaged[ware] += 1;
   player.cash += 12;
+  recordCash(room, player, 12, '抵押股票获得贷款', 'financing');
   nowLog(room, `${player.nickname} 抵押了 1 股${WARES[ware].name}，获得 12₱`, 'money');
   return true;
 }
@@ -266,6 +295,8 @@ function resetVoyageBoard(room) {
 function beginVoyage(room, starterId) {
   resetVoyageBoard(room);
   room.round += 1;
+  room.settlement = null;
+  startVoyageLedger(room);
   room.phase = 'auction';
   const starter = playerOf(room, starterId) ? starterId : room.players[0].id;
   room.auction = {
@@ -289,6 +320,7 @@ function resolveAuction(room) {
   } else {
     const winner = playerOf(room, winnerId);
     if (!pay(room, winner, price)) throw new Error('竞拍款无法支付');
+    recordCash(room, winner, -price, '竞拍港务长', 'expense');
     nowLog(room, `${winner.nickname} 以 ${price}₱ 成为港务长`, 'auction');
   }
   room.harborMasterId = winnerId;
@@ -344,6 +376,7 @@ function harborSetup(room, pid, payload) {
     if (!WARES[buyWare] || room.stockSupply[buyWare] <= 0) throw new Error('该股票已经售罄');
     const price = Math.max(5, MARKET_TRACK[room.market[buyWare]]);
     if (!pay(room, buyer, price)) throw new Error('买股票的资金不足');
+    recordCash(room, buyer, -price, `购买 1 股${WARES[buyWare].name}`, 'expense');
     buyer.shares[buyWare] += 1;
     room.stockSupply[buyWare] -= 1;
     nowLog(room, `${buyer.nickname} 以 ${price}₱ 买入 1 股${WARES[buyWare].name}`, 'money');
@@ -455,9 +488,11 @@ function place(room, pid, locationId) {
   } else if (location.type === 'insurance') {
     room.placements.insurance = token;
     player.cash += 10;
+    recordCash(room, player, 10, '保险公司立即奖励', 'income');
   }
   player.pawnsAvailable -= 1;
   const label = locationLabel(room, locationId);
+  if (location.type !== 'insurance' && paid > 0) recordCash(room, player, -paid, `派遣帮手到${label}`, 'expense');
   nowLog(room, `${player.nickname} ${blind ? '以偷渡客身份' : ''}派出帮手到${label}${location.type === 'insurance' ? '并领取 10₱' : `，支付 ${paid}₱`}`, 'placement');
   finishPlacementTurn(room, pid);
 }
@@ -660,8 +695,9 @@ function pirateDestination(room, pid, area) {
   if (!room.plunderQueue.length) settleVoyage(room);
 }
 
-function credit(player, amount) {
+function credit(room, player, amount, label, category = 'income') {
   player.cash += amount;
+  recordCash(room, player, amount, label, category);
 }
 
 function settleVoyage(room) {
@@ -671,14 +707,14 @@ function settleVoyage(room) {
   const plunderTotal = room.boats.filter((boat) => boat.plundered).reduce((sum, boat) => sum + WARES[boat.ware].pool, 0);
   if (plunderTotal && room.plunderPirates.length) {
     const each = plunderTotal / room.plunderPirates.length;
-    for (const token of room.plunderPirates) credit(playerOf(room, token.pid), each);
+    for (const token of room.plunderPirates) credit(room, playerOf(room, token.pid), each, '海盗抢劫分红');
     nowLog(room, `海盗瓜分 ${plunderTotal}₱，每名海盗获得 ${each}₱`, 'money');
   }
 
   for (const boat of room.boats.filter((item) => item.status === 'port' && !item.plundered)) {
     if (!boat.crew.length) continue;
     const each = WARES[boat.ware].pool / boat.crew.length;
-    for (const token of boat.crew) credit(playerOf(room, token.pid), each);
+    for (const token of boat.crew) credit(room, playerOf(room, token.pid), each, `${WARES[boat.ware].name}船船员分红`);
     nowLog(room, `${WARES[boat.ware].name}船员瓜分 ${WARES[boat.ware].pool}₱，每名帮手获得 ${each}₱`, 'money');
   }
 
@@ -686,7 +722,7 @@ function settleVoyage(room) {
     if (room.docks.port[letter] && room.placements.port[letter]) {
       const reward = SLOT_DATA.port[letter].reward;
       const receiver = playerOf(room, room.placements.port[letter].pid);
-      credit(receiver, reward);
+      credit(room, receiver, reward, `港口 ${letter} 押注命中`);
       nowLog(room, `${receiver.nickname} 的港口 ${letter} 下注命中，获得 ${reward}₱`, 'money');
     }
   }
@@ -700,7 +736,7 @@ function settleVoyage(room) {
     const receiver = betToken ? playerOf(room, betToken.pid) : null;
     if (!insurer) {
       if (receiver) {
-        credit(receiver, repair);
+        credit(room, receiver, repair, `船厂 ${letter} 押注命中`);
         nowLog(room, `${receiver.nickname} 的船厂 ${letter} 下注命中，银行支付 ${repair}₱`, 'money');
       }
       continue;
@@ -712,7 +748,8 @@ function settleVoyage(room) {
     while (insurer.cash < repair && mortgageOne(room, insurer)) {}
     const paid = Math.min(insurer.cash, repair);
     insurer.cash -= paid;
-    if (receiver) credit(receiver, repair);
+    recordCash(room, insurer, -paid, `承担船厂 ${letter} 修理费`, 'expense');
+    if (receiver) credit(room, receiver, repair, `船厂 ${letter} 押注命中`);
     nowLog(room, `${insurer.nickname} 为船厂 ${letter} 支付 ${paid}₱${paid < repair ? `，银行补足 ${repair - paid}₱` : ''}${receiver ? `给 ${receiver.nickname}` : '给银行'}`, 'money');
   }
 
@@ -727,8 +764,62 @@ function settleVoyage(room) {
     delivered: room.boats.filter((item) => item.status === 'port').map((boat) => ({ ware: boat.ware, price: MARKET_TRACK[room.market[boat.ware]] })),
   });
 
-  if (WARE_IDS.some((ware) => MARKET_TRACK[room.market[ware]] >= 30)) return finishGame(room);
-  beginVoyage(room, room.previousHarborMasterId);
+  openSettlementReview(room, WARE_IDS.some((ware) => MARKET_TRACK[room.market[ware]] >= 30));
+}
+
+function settlementConfirmation(room) {
+  if (room.placements.pilots.large) return { pid: room.placements.pilots.large.pid, role: '大领航员' };
+  if (room.placements.pilots.small) return { pid: room.placements.pilots.small.pid, role: '小领航员' };
+  return { pid: room.harborMasterId, role: '港务长（本轮无领航员）' };
+}
+
+function openSettlementReview(room, endsGame) {
+  const confirmer = settlementConfirmation(room);
+  const ledger = room.voyageLedger || {
+    openingCash: Object.fromEntries(room.players.map((player) => [player.id, player.cash])),
+    entries: [],
+  };
+  const players = room.players.map((player) => {
+    const openingCash = money(ledger.openingCash[player.id] ?? player.cash);
+    const entries = ledger.entries.filter((entry) => entry.pid === player.id).map((entry) => clone(entry));
+    const totalIncome = money(entries.filter((entry) => entry.amount > 0).reduce((sum, entry) => sum + entry.amount, 0));
+    const totalExpense = money(-entries.filter((entry) => entry.amount < 0).reduce((sum, entry) => sum + entry.amount, 0));
+    return {
+      pid: player.id,
+      nickname: player.nickname,
+      color: player.color,
+      isBot: player.isBot,
+      openingCash,
+      entries,
+      totalIncome,
+      totalExpense,
+      net: money(player.cash - openingCash),
+      closingCash: money(player.cash),
+    };
+  });
+  const openedAt = Date.now();
+  room.settlement = {
+    round: room.round,
+    openedAt,
+    readyAt: openedAt + 5000,
+    confirmerId: confirmer.pid,
+    confirmerRole: confirmer.role,
+    endsGame: Boolean(endsGame),
+    players,
+  };
+  room.phase = 'settlement_review';
+  room.currentPlayerId = confirmer.pid;
+  nowLog(room, `第 ${room.round} 次航程结算完成，等待${confirmer.role}${playerName(room, confirmer.pid)}确认`, 'phase');
+}
+
+function confirmSettlement(room, pid) {
+  if (room.phase !== 'settlement_review' || !room.settlement) throw new Error('现在没有待确认的航程结算');
+  if (room.settlement.confirmerId !== pid) throw new Error(`只有本轮${room.settlement.confirmerRole}可以确认结算`);
+  const endsGame = room.settlement.endsGame;
+  nowLog(room, `${playerName(room, pid)} 已确认第 ${room.round} 次航程结算`, 'phase');
+  room.settlement = null;
+  if (endsGame) finishGame(room);
+  else beginVoyage(room, room.previousHarborMasterId);
 }
 
 function finishGame(room) {
@@ -843,6 +934,9 @@ function runBotTurn(room, random = Math.random) {
   if (wait > 0) return { acted: false, wait };
   const bot = playerOf(room, room.currentPlayerId);
   if (!bot?.isBot) return { acted: false };
+  if (room.phase === 'settlement_review' && room.settlement?.readyAt > Date.now()) {
+    return { acted: false, wait: room.settlement.readyAt - Date.now() };
+  }
   switch (room.phase) {
     case 'auction': botAuction(room, bot, random); break;
     case 'harbor_setup': botHarborSetup(room, bot); break;
@@ -852,6 +946,7 @@ function runBotTurn(room, random = Math.random) {
     case 'pirate_board': botPirateBoard(room, bot); break;
     case 'pilot': botPilot(room, bot); break;
     case 'pirate_destination': botPirateDestination(room, bot); break;
+    case 'settlement_review': confirmSettlement(room, bot.id); break;
     default: return { acted: false };
   }
   room.version += 1;
@@ -859,16 +954,19 @@ function runBotTurn(room, random = Math.random) {
 }
 
 function mortgage(room, pid, ware) {
+  if (room.phase === 'settlement_review') throw new Error('结算确认前不能变更现金');
   const player = playerOf(room, pid);
   if (!WARES[ware]) throw new Error('未知股票');
   if (!mortgageOne(room, player, ware)) throw new Error('没有可抵押的这类股票');
 }
 
 function redeem(room, pid, ware) {
+  if (room.phase === 'settlement_review') throw new Error('结算确认前不能变更现金');
   const player = playerOf(room, pid);
   if (!WARES[ware] || player.mortgaged[ware] <= 0) throw new Error('没有这类已抵押股票');
   if (player.cash < 15) throw new Error('赎回需要 15₱ 现金');
   player.cash -= 15;
+  recordCash(room, player, -15, '赎回抵押股票', 'expense');
   player.mortgaged[ware] -= 1;
   nowLog(room, `${player.nickname} 支付 15₱ 赎回 1 股${WARES[ware].name}`, 'money');
 }
@@ -889,6 +987,7 @@ function dispatch(room, pid, action, payload = {}, random = Math.random) {
     case 'pirate-board': pirateBoard(room, pid, payload.ware || null); break;
     case 'pilot': pilotMove(room, pid, payload.moves || []); break;
     case 'pirate-destination': pirateDestination(room, pid, payload.area); break;
+    case 'confirm-settlement': confirmSettlement(room, pid); break;
     case 'mortgage': mortgage(room, pid, payload.ware); break;
     case 'redeem': redeem(room, pid, payload.ware); break;
     default: throw new Error('未知动作');

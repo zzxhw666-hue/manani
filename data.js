@@ -13,7 +13,7 @@ window.MANILA_DATA = (function () {
     phaseNames: {
       waiting: '等待开局', auction: '竞拍港务长', harbor_setup: '港务长布船', placement: '派遣帮手',
       dice: '等待掷骰', move: '决定移船顺序', pirate_board: '海盗登船', pilot: '领航员行动',
-      pirate_destination: '海盗决定去向', settle: '航程结算', finished: '游戏结束'
+      pirate_destination: '海盗决定去向', settle: '航程结算', settlement_review: '本轮收支结算', finished: '游戏结束'
     }
   };
 })();

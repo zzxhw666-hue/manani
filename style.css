@@ -276,6 +276,46 @@ h1, h2, h3, .game-brand strong { font-family: "Noto Serif SC", "Songti SC", seri
 .score-row > b { color: var(--red); }
 .score-row > em { font-size: 16px; font-style: normal; font-weight: 700; color: var(--red-dark); text-align: right; }
 
+/* 每次航程结束后的收支对账页 */
+.settlement-page { position: fixed; z-index: 80; inset: 0; display: grid; place-items: center; padding: 22px; color: var(--ink); background: radial-gradient(circle at 50% 15%, rgba(39,91,82,.94), rgba(5,24,22,.98) 72%); backdrop-filter: blur(10px); }
+.settlement-sheet { width: min(1220px, 98vw); max-height: calc(100vh - 44px); overflow-y: auto; border: 1px solid #cbb984; border-top: 6px solid var(--gold); background: var(--paper); box-shadow: 0 35px 110px rgba(0,0,0,.58); }
+.settlement-heading { position: sticky; z-index: 3; top: 0; display: flex; align-items: center; gap: 25px; padding: 24px 28px 19px; color: #fff8e7; background: linear-gradient(125deg, #143e39, #215d54); border-bottom: 1px solid rgba(255,255,255,.18); }
+.settlement-heading > div:first-child { flex: 1; }
+.settlement-heading h1 { margin: 5px 0; font-size: clamp(24px, 4vw, 38px); letter-spacing: .08em; }
+.settlement-heading p { max-width: 760px; color: #c4d6ce; font-size: 12px; line-height: 1.6; }
+.settlement-seal { width: 76px; height: 76px; flex: 0 0 auto; display: grid; place-items: center; align-content: center; border: 2px solid #dcb75f; border-radius: 50%; color: #f0cf7d; box-shadow: inset 0 0 0 4px rgba(220,183,95,.12); }
+.settlement-seal span { font-family: "Noto Serif SC", serif; font-size: 28px; line-height: 1; }
+.settlement-seal small { margin-top: 4px; font-size: 7px; letter-spacing: .18em; }
+.settlement-players { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 12px; padding: 18px 20px; }
+.settlement-player { min-width: 0; overflow: hidden; border: 1px solid #c8bb99; border-top: 4px solid var(--player); background: rgba(255,255,255,.28); box-shadow: 0 8px 20px rgba(47,55,44,.1); }
+.settlement-player.me { box-shadow: 0 0 0 2px rgba(201,159,74,.55), 0 10px 25px rgba(47,55,44,.14); }
+.settlement-player > header { display: flex; align-items: center; gap: 9px; padding: 11px 12px; border-bottom: 1px solid #d2c5a4; background: rgba(255,255,255,.26); }
+.settlement-player > header > div { display: flex; flex-direction: column; }
+.settlement-player > header strong { font-family: "Noto Serif SC", serif; font-size: 13px; }
+.settlement-player > header small { color: #817a63; font-size: 8px; }
+.settlement-player > header > b { margin-left: auto; color: #72694f; font-size: 10px; }
+.cash-entries { min-height: 112px; max-height: 210px; overflow-y: auto; padding: 7px 11px; }
+.cash-entry { display: flex; align-items: center; gap: 8px; min-height: 29px; border-bottom: 1px dotted #d1c5a7; font-size: 10px; }
+.cash-entry > span { flex: 1; min-width: 0; }
+.cash-entry i { display: inline-block; margin-left: 5px; padding: 1px 4px; border-radius: 6px; color: #7d673a; background: rgba(201,159,74,.18); font-size: 7px; font-style: normal; }
+.cash-entry > b { font-size: 11px; white-space: nowrap; }
+.cash-entry.gain > b, .cash-totals .gain { color: #28725e; }
+.cash-entry.loss > b, .cash-totals .loss { color: #ad4333; }
+.cash-entry.empty { color: #928a71; }
+.cash-totals { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px; padding: 9px 11px; border-top: 1px solid #cbbd9b; background: rgba(214,199,160,.2); }
+.cash-totals span { display: flex; justify-content: space-between; color: #756e58; font-size: 9px; }
+.cash-totals span:last-child { grid-column: 1 / -1; padding-top: 4px; border-top: 1px solid #d4c8a7; font-size: 10px; }
+.settlement-player > footer { display: flex; align-items: baseline; justify-content: space-between; padding: 10px 12px; color: #fff; background: #1d554e; }
+.settlement-player > footer span { color: #c8d9d1; font-size: 9px; letter-spacing: .04em; }
+.settlement-player > footer strong { font-size: 23px; }
+.settlement-confirm { position: sticky; z-index: 3; bottom: 0; display: flex; align-items: center; gap: 18px; padding: 14px 22px; color: #fff; background: #0f3632; border-top: 1px solid rgba(255,255,255,.16); box-shadow: 0 -10px 28px rgba(15,54,50,.18); }
+.settlement-confirm > div:first-child { display: flex; flex-direction: column; }
+.settlement-confirm span { color: #9eb9af; font-size: 9px; letter-spacing: .12em; }
+.settlement-confirm strong { color: #fff5d6; font-family: "Noto Serif SC", serif; font-size: 13px; }
+.settlement-confirm .btn { margin-left: auto; min-width: 210px; }
+.settlement-waiting { margin-left: auto; padding: 10px 15px; color: #d8c99e; border: 1px dashed rgba(216,201,158,.45); font-size: 11px; animation: settlement-wait 1.8s ease-in-out infinite; }
+@keyframes settlement-wait { 50% { opacity: .55; } }
+
 /* 弹窗与提示 */
 .modal-mask { position: fixed; z-index: 100; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(4,22,20,.78); backdrop-filter: blur(5px); }
 .modal { width: min(560px, 96vw); max-height: 90vh; overflow-y: auto; padding: 25px; border-top: 5px solid var(--red); }
@@ -380,8 +420,17 @@ h1, h2, h3, .game-brand strong { font-family: "Noto Serif SC", "Songti SC", seri
   .event-die { border-radius: 10px; padding: 7px; }
   .event-die > span { font-size: 17px; }
   .event-die > small { font-size: 9px; }
+  .settlement-page { padding: 0; }
+  .settlement-sheet { width: 100vw; max-height: 100vh; min-height: 100vh; border: 0; }
+  .settlement-heading { padding: 18px 15px 14px; }
+  .settlement-heading p { font-size: 10px; }
+  .settlement-seal { width: 58px; height: 58px; }
+  .settlement-players { grid-template-columns: 1fr; padding: 12px; }
+  .cash-entries { max-height: none; }
+  .settlement-confirm { align-items: stretch; flex-direction: column; gap: 10px; padding: 12px; }
+  .settlement-confirm .btn, .settlement-waiting { width: 100%; min-width: 0; margin-left: 0; text-align: center; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .event-overlay, .event-overlay::before, .event-overlay::after, .event-die, .event-overlay.revealed .event-die, .pirate-emblem, .market-arrow, .victory-trophy { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+  .event-overlay, .event-overlay::before, .event-overlay::after, .event-die, .event-overlay.revealed .event-die, .pirate-emblem, .market-arrow, .victory-trophy, .settlement-waiting { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }
