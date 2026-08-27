@@ -78,6 +78,11 @@ test('健康检查与 SSE 在房间变化时即时推送', async (t) => {
   const listing = await post('rooms/list', { sessionToken: guest.sessionToken });
   assert.equal(listing.rooms.filter((room) => room.name === '即时同步房').length, 1);
 
+  const sameNameGuest = await post('session', { nickname: '推送测试' });
+  const sameNameJoin = await post('rooms/join', { sessionToken: sameNameGuest.sessionToken, code: created.code });
+  assert.equal(sameNameJoin.success, false);
+  assert.match(sameNameJoin.error, /使用原浏览器.*更换昵称/);
+
   await post('rooms/join', { sessionToken: guest.sessionToken, code: created.code });
   const leave = await post('rooms/leave', { sessionToken: guest.sessionToken });
   assert.equal(leave.dissolved, true);

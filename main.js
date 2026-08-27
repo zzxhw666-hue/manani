@@ -9,6 +9,12 @@
 
   function me() { return { id: API.playerId(), nickname: API.nickname() }; }
 
+  function setLobbySubmitting(submitting) {
+    document.querySelectorAll('#create-room, #join-room, [data-join]').forEach(function (button) {
+      button.disabled = submitting || Boolean(room);
+    });
+  }
+
   function stopUpdates() {
     clearInterval(fallbackTimer);
     fallbackTimer = null;
@@ -85,13 +91,19 @@
   }
 
   async function join(code) {
+    if (busy) return;
     if (room) { UI.toast('请先退出当前房间，再加入其他房间', false); return; }
+    var joined = false;
+    busy = true;
+    setLobbySubmitting(true);
     try {
       var result = await API.joinRoom(String(code || '').trim().toUpperCase());
       room = result.room;
+      joined = true;
       UI.toast('已加入航运局', true);
-      await refresh();
     } catch (error) { UI.toast(error.message, false); }
+    finally { busy = false; setLobbySubmitting(false); }
+    if (joined) await refresh();
   }
 
   async function leave() {
@@ -111,11 +123,17 @@
     event.preventDefault(); login(document.getElementById('nickname').value.trim());
   });
   document.getElementById('create-room').addEventListener('click', async function () {
+    if (busy) return;
     if (room) { UI.toast('请先退出当前房间，再创建新房间', false); return; }
+    var created = false;
+    busy = true;
+    setLobbySubmitting(true);
     try {
       var result = await API.createRoom(document.getElementById('room-name').value.trim(), Number(document.getElementById('room-max').value));
-      room = result.room; document.getElementById('room-code').value = result.code; UI.toast('房间已创建：' + result.code, true); await refresh();
+      room = result.room; created = true; document.getElementById('room-code').value = result.code; UI.toast('房间已创建：' + result.code, true);
     } catch (error) { UI.toast(error.message, false); }
+    finally { busy = false; setLobbySubmitting(false); }
+    if (created) await refresh();
   });
   document.getElementById('join-room').addEventListener('click', function () { join(document.getElementById('room-code').value); });
   document.getElementById('room-code').addEventListener('keydown', function (event) { if (event.key === 'Enter') join(event.target.value); });

@@ -4,6 +4,7 @@ window.MANILA_UI = (function () {
   var eventCursors = {};
   var eventQueue = [];
   var eventPlaying = false;
+  var toastTimer = null;
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -25,11 +26,13 @@ window.MANILA_UI = (function () {
 
   function toast(message, ok) {
     var root = document.getElementById('toast-root');
+    clearTimeout(toastTimer);
+    root.innerHTML = '';
     var node = document.createElement('div');
     node.className = 'toast ' + (ok ? 'ok' : 'error');
     node.textContent = message;
     root.appendChild(node);
-    setTimeout(function () { node.classList.add('leaving'); setTimeout(function () { node.remove(); }, 300); }, 2600);
+    toastTimer = setTimeout(function () { node.classList.add('leaving'); setTimeout(function () { node.remove(); }, 300); }, 3200);
   }
 
   function modal(title, body, onConfirm, confirmLabel) {
