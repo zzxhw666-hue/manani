@@ -7,9 +7,9 @@ const crypto = require('node:crypto');
 const {
   createRoom,
   addPlayer,
-  removeWaitingPlayer,
   dispatch,
   publicRoom,
+  runBotTurn,
 } = require('./lib/game');
 
 const PORT = Number(process.env.PORT || 4173);
@@ -22,6 +22,7 @@ const STATE_FILE = path.join(DATA_DIR, 'state.json');
 // small "change" signal; each client then fetches the room view personalized for
 // that player. This avoids repeatedly downloading the whole table on a timer.
 const eventClients = new Set();
+const botTimers = new Map();
 
 let state = { sessions: {}, rooms: {} };
 try {
@@ -49,9 +50,52 @@ function notifyClients(scope) {
   }
 }
 
+function scheduleBot(roomCode, requestedDelay) {
+  const previous = botTimers.get(roomCode);
+  if (previous) clearTimeout(previous);
+  botTimers.delete(roomCode);
+  const room = state.rooms[roomCode];
+  if (!room || room.status !== 'playing') return;
+  const current = room.players.find((player) => player.id === room.currentPlayerId);
+  if (!current?.isBot) return;
+  const lockedFor = Math.max(0, (Number(room.lockedUntil) || 0) - Date.now());
+  const delay = Math.max(Number(requestedDelay) || 0, lockedFor ? lockedFor + 60 : 520);
+  const timer = setTimeout(() => {
+    botTimers.delete(roomCode);
+    const liveRoom = state.rooms[roomCode];
+    if (!liveRoom) return;
+    try {
+      const result = runBotTurn(liveRoom);
+      if (result.acted) changed(roomCode);
+      else if (result.wait > 0) scheduleBot(roomCode, result.wait + 60);
+    } catch (error) {
+      console.error(`人机回合执行失败 [${roomCode}]:`, error.message);
+      scheduleBot(roomCode, 1200);
+    }
+  }, delay);
+  timer.unref?.();
+  botTimers.set(roomCode, timer);
+}
+
 function changed(scope) {
   saveSoon();
   notifyClients(scope);
+  if (scope) scheduleBot(scope);
+}
+
+function dissolveRoom(room, leavingSession) {
+  const message = `${leavingSession.nickname} 退出了房间，本局已解散`;
+  const timer = botTimers.get(room.code);
+  if (timer) clearTimeout(timer);
+  botTimers.delete(room.code);
+  delete state.rooms[room.code];
+  for (const session of Object.values(state.sessions)) {
+    if (session.roomCode !== room.code) continue;
+    session.roomCode = null;
+    session.notice = message;
+  }
+  delete leavingSession.notice;
+  return message;
 }
 
 function json(res, status, body) {
@@ -152,6 +196,7 @@ async function api(req, res, pathname) {
     });
     state.rooms[code] = room;
     session.roomCode = code;
+    delete session.notice;
     changed(code);
     return json(res, 200, { success: true, code, room: publicRoom(room, session.playerId) });
   }
@@ -163,30 +208,36 @@ async function api(req, res, pathname) {
     if (currentRoom(session) && session.roomCode !== code) throw new Error('请先离开当前房间');
     addPlayer(room, { id: session.playerId, nickname: session.nickname });
     session.roomCode = code;
+    delete session.notice;
     changed(code);
     return json(res, 200, { success: true, room: publicRoom(room, session.playerId) });
   }
 
   if (pathname === '/api/rooms/leave') {
     const room = currentRoom(session);
-    if (room) {
-      removeWaitingPlayer(room, session.playerId);
-      if (!room.players.length) delete state.rooms[room.code];
-    }
+    const message = room ? dissolveRoom(room, session) : '已离开房间';
     session.roomCode = null;
     changed(room?.code);
-    return json(res, 200, { success: true });
+    return json(res, 200, { success: true, dissolved: Boolean(room), message });
   }
 
   if (pathname === '/api/rooms/state') {
     const room = currentRoom(session);
-    if (!room) return json(res, 200, { success: true, noRoom: true });
+    if (!room) {
+      const notice = session.notice || null;
+      delete session.notice;
+      if (notice) saveSoon();
+      return json(res, 200, { success: true, noRoom: true, notice });
+    }
     return json(res, 200, { success: true, room: publicRoom(room, session.playerId) });
   }
 
   if (pathname === '/api/action') {
     const room = currentRoom(session);
     if (!room) throw new Error('你还没有加入房间');
+    if (!['mortgage', 'redeem'].includes(body.action) && (Number(room.lockedUntil) || 0) > Date.now()) {
+      throw new Error('特殊事件动效尚未揭晓，请稍候');
+    }
     if (body.version !== undefined && Number(body.version) !== room.version) {
       return json(res, 409, { success: false, conflict: true, error: '桌面状态已更新，请重试', room: publicRoom(room, session.playerId) });
     }
@@ -290,5 +341,9 @@ if (require.main === module) {
     console.log(`马尼拉联机桌已启动：http://localhost:${PORT}`);
   });
 }
+
+server.on('listening', () => {
+  for (const room of Object.values(state.rooms)) scheduleBot(room.code);
+});
 
 module.exports = { server, state };

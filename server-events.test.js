@@ -48,12 +48,20 @@ test('健康检查与 SSE 在房间变化时即时推送', async (t) => {
   const ready = decoder.decode((await reader.read()).value);
   assert.match(ready, /event: ready/);
 
-  await post('rooms/create', {
+  const created = await post('rooms/create', {
     sessionToken: session.sessionToken,
     name: '即时同步房',
     maxPlayers: 3,
   });
   const change = decoder.decode((await reader.read()).value);
   assert.match(change, /event: change/);
+
+  const guest = await post('session', { nickname: '退出测试' });
+  await post('rooms/join', { sessionToken: guest.sessionToken, code: created.code });
+  const leave = await post('rooms/leave', { sessionToken: guest.sessionToken });
+  assert.equal(leave.dissolved, true);
+  const formerHostState = await post('rooms/state', { sessionToken: session.sessionToken });
+  assert.equal(formerHostState.noRoom, true);
+  assert.match(formerHostState.notice, /本局已解散/);
   await reader.cancel();
 });

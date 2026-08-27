@@ -101,11 +101,14 @@ h1, h2, h3, .game-brand strong { font-family: "Noto Serif SC", "Songti SC", seri
 .waiting-player { display: flex; align-items: center; gap: 9px; min-height: 44px; border-bottom: 1px solid #d6c9a7; }
 .waiting-player .seat-no { font-size: 10px; color: #958d75; }
 .waiting-player em { margin-left: auto; font-size: 10px; font-style: normal; color: var(--red); border: 1px solid #c78577; padding: 2px 6px; }
+.waiting-player .bot-tag { margin-left: 0; color: #27695f; border-color: #6b9f94; background: rgba(41,105,95,.08); }
+.remove-bot { width: 24px; height: 24px; margin-left: 2px; padding: 0; border: 1px solid #bba98b; border-radius: 50%; color: #8b4a3d; background: transparent; font-size: 16px; line-height: 1; }
+.remove-bot:hover { background: rgba(180,71,52,.1); }
 .waiting-player.open { color: #9b947d; font-size: 12px; }
 .player-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--player, transparent); border: 2px solid color-mix(in srgb, var(--player, #a69b7f), #000 15%); box-shadow: inset 0 1px rgba(255,255,255,.5); flex: 0 0 auto; }
 .waiting-player.open .player-dot { border: 1px dashed #9c9278; }
 .lobby-note { color: #7c755f; font-size: 12px; line-height: 1.6; margin: 14px 0; }
-.panel-actions { display: flex; gap: 8px; align-items: center; }
+.panel-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .waiting-copy { font-size: 12px; color: #7c755f; margin-right: auto; }
 
 /* 游戏头部 */
@@ -244,6 +247,7 @@ h1, h2, h3, .game-brand strong { font-family: "Noto Serif SC", "Songti SC", seri
 .player-line.active { border-color: var(--red); background: rgba(180,71,52,.08); }
 .player-line > div { display: flex; flex-direction: column; }
 .player-line strong { font-size: 11px; }
+.inline-bot-tag { display: inline-block; padding: 1px 4px; border-radius: 7px; background: #2d7066; color: #fff; font-size: 7px; font-style: normal; vertical-align: 1px; }
 .player-line small { color: #817a62; font-size: 8px; }
 .player-line > b { color: var(--red-dark); font-size: 13px; }
 .pawn-count { font-size: 8px; color: #77715b; min-width: 42px; text-align: right; }
@@ -287,6 +291,10 @@ h1, h2, h3, .game-brand strong { font-family: "Noto Serif SC", "Songti SC", seri
 #setup-sum { text-align: right; font-size: 11px; color: var(--red); font-weight: 700; margin-top: 8px; }
 .pilot-row { display: grid; grid-template-columns: 1fr 120px; gap: 7px; margin-top: 8px; }
 .modal-note { font-size: 9px; color: #817a62; margin-top: 4px; }
+.disband-warning { display: grid; grid-template-columns: 42px 1fr; align-items: start; gap: 12px; padding: 14px; border: 1px solid #c99872; background: rgba(180,71,52,.08); color: #655b4a; }
+.disband-warning > span { font-size: 30px; color: var(--red); }
+.disband-warning p { font-size: 12px; line-height: 1.65; }
+.disband-warning b { color: var(--red-dark); }
 .rules { color: #5d6250; font-size: 12px; line-height: 1.7; }
 .rules h3 { color: var(--red-dark); margin: 13px 0 4px; }
 .rules ol { padding-left: 20px; margin: 4px 0; }
@@ -294,6 +302,41 @@ h1, h2, h3, .game-brand strong { font-family: "Noto Serif SC", "Songti SC", seri
 .toast { color: #fff; background: #1a4b45; border: 1px solid #4d8177; box-shadow: 0 8px 25px rgba(0,0,0,.32); padding: 9px 16px; font-size: 12px; transition: .3s; }
 .toast.error { background: #7b3328; border-color: #b75b4d; }
 .toast.leaving { opacity: 0; transform: translateY(-8px); }
+
+/* 服务端事件驱动的全员同步动效 */
+.event-overlay { position: fixed; z-index: 160; inset: 0; display: grid; place-items: center; padding: 20px; overflow: hidden; background: radial-gradient(circle at center, rgba(28,83,77,.82), rgba(3,19,18,.96) 68%); backdrop-filter: blur(8px); animation: event-in .28s ease-out both; }
+.event-overlay::before, .event-overlay::after { content: ""; position: absolute; inset: -30%; pointer-events: none; }
+.event-overlay::before { background: repeating-radial-gradient(circle at center, transparent 0 42px, rgba(255,255,255,.035) 43px 44px); animation: event-ripple 4s linear infinite; }
+.event-overlay::after { background: linear-gradient(110deg, transparent 35%, rgba(255,255,255,.08) 49%, transparent 63%); transform: translateX(-65%); animation: event-sheen 1.8s ease-in-out infinite; }
+.event-overlay.event-leaving { animation: event-out .28s ease-in both; }
+.event-stage { position: relative; z-index: 2; width: min(760px, 94vw); padding: 34px; text-align: center; color: #fff7df; border: 1px solid rgba(224,198,133,.48); background: rgba(10,42,39,.76); box-shadow: 0 30px 100px rgba(0,0,0,.52), inset 0 0 80px rgba(201,159,74,.06); }
+.event-stage h2 { margin: 8px 0 22px; color: #fff6da; font-size: clamp(28px, 5vw, 52px); letter-spacing: .08em; text-shadow: 0 5px 22px rgba(0,0,0,.42); }
+.event-stage > p { margin-top: 20px; color: #bfd0c8; font-size: 13px; letter-spacing: .08em; }
+.event-kicker { color: #e1bd6e; font-size: 10px; font-weight: 700; letter-spacing: .3em; }
+.event-dice-row { display: flex; justify-content: center; gap: clamp(10px, 3vw, 26px); perspective: 900px; }
+.event-die { width: clamp(94px, 18vw, 150px); aspect-ratio: 1 / 1.08; display: grid; grid-template-rows: 28px 1fr 24px; place-items: center; padding: 10px; border: 2px solid color-mix(in srgb, var(--ware), #fff 28%); border-radius: 16px; color: #fff; background: linear-gradient(145deg, color-mix(in srgb, var(--ware), #fff 9%), color-mix(in srgb, var(--ware), #091c1a 54%)); box-shadow: inset 0 2px 3px rgba(255,255,255,.3), inset 0 -8px 20px rgba(0,0,0,.2), 0 18px 35px rgba(0,0,0,.3); animation: dice-tumble .46s cubic-bezier(.3,.1,.7,.9) infinite; animation-delay: var(--delay); transform-style: preserve-3d; }
+.event-die > span { font-size: 22px; justify-self: start; }
+.event-die > b { font-family: "Noto Serif SC", serif; font-size: clamp(45px, 9vw, 78px); line-height: 1; text-shadow: 0 4px 0 rgba(0,0,0,.2); }
+.event-die > small { font-size: 11px; letter-spacing: .15em; }
+.event-overlay.revealed .event-die { animation: dice-reveal .55s cubic-bezier(.2,.8,.2,1) both; }
+.event-overlay.revealed .event-die > b { animation: result-pulse .65s ease-out both; }
+.pirate-stage { border-color: rgba(220,109,81,.7); background: radial-gradient(circle at center top, rgba(154,55,39,.5), rgba(12,29,27,.92) 65%); }
+.pirate-emblem { width: 128px; height: 128px; display: grid; place-items: center; margin: -4px auto 14px; border: 2px solid #d49a69; border-radius: 50%; color: #f5d3a4; background: #702e27; font-size: 76px; box-shadow: 0 0 0 10px rgba(112,46,39,.25), 0 0 70px rgba(211,80,51,.35); animation: pirate-strike .7s cubic-bezier(.2,.9,.2,1) both; }
+.pirate-stage.plunder .pirate-emblem { animation: pirate-strike .7s cubic-bezier(.2,.9,.2,1) both, pirate-glow 1s ease-in-out .7s infinite alternate; }
+.pirate-stage p b { color: #f0bf6d; }
+.market-arrow, .victory-trophy { font-size: 82px; color: #e4bb63; filter: drop-shadow(0 8px 20px rgba(0,0,0,.35)); animation: result-pulse .8s ease-out both; }
+.market-event-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.market-event-list span { min-width: 150px; display: flex; align-items: center; gap: 8px; padding: 12px 15px; border: 1px solid color-mix(in srgb, var(--ware), #fff 35%); background: color-mix(in srgb, var(--ware) 35%, #153b36); }
+.market-event-list b { margin-left: auto; color: #fff3c8; font-size: 22px; }
+@keyframes event-in { from { opacity: 0; } }
+@keyframes event-out { to { opacity: 0; transform: scale(1.02); } }
+@keyframes event-ripple { to { transform: rotate(8deg) scale(1.04); } }
+@keyframes event-sheen { 50%, 100% { transform: translateX(65%); } }
+@keyframes dice-tumble { 0% { transform: rotateX(0) rotateY(0) translateY(0); } 45% { transform: rotateX(22deg) rotateY(35deg) translateY(-9px); } 100% { transform: rotateX(0) rotateY(90deg) translateY(0); } }
+@keyframes dice-reveal { 0% { transform: rotateX(45deg) scale(.7); } 65% { transform: rotateX(0) scale(1.12); } 100% { transform: scale(1); } }
+@keyframes result-pulse { 0% { opacity: 0; transform: scale(.35); } 70% { transform: scale(1.16); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes pirate-strike { 0% { opacity: 0; transform: translateY(-70px) rotate(-18deg) scale(1.5); } 70% { transform: translateY(6px) rotate(3deg) scale(.94); } 100% { opacity: 1; transform: none; } }
+@keyframes pirate-glow { to { box-shadow: 0 0 0 15px rgba(112,46,39,.12), 0 0 90px rgba(211,80,51,.58); } }
 
 @media (max-width: 1280px) {
   .lobby-grid { grid-template-columns: 320px 1fr; }
@@ -331,4 +374,14 @@ h1, h2, h3, .game-brand strong { font-family: "Noto Serif SC", "Songti SC", seri
   .score-row span { display: none; }
   .setup-boats { grid-template-columns: 1fr; }
   .auth-card { padding: 38px 25px; }
+  .game-brand strong { font-size: 17px; }
+  .game-header .btn.small { padding: 6px 7px; font-size: 10px; }
+  .event-stage { padding: 26px 12px; }
+  .event-die { border-radius: 10px; padding: 7px; }
+  .event-die > span { font-size: 17px; }
+  .event-die > small { font-size: 9px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-overlay, .event-overlay::before, .event-overlay::after, .event-die, .event-overlay.revealed .event-die, .pirate-emblem, .market-arrow, .victory-trophy { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
 }

@@ -50,8 +50,10 @@
   async function refresh() {
     if (!API.hasSession() || busy) return;
     try {
+      var previousRoom = room;
       var result = await API.state();
       room = result.noRoom ? null : result.room;
+      if (!room && previousRoom && result.notice) UI.toast(result.notice, false);
       if (room && (room.status === 'playing' || room.status === 'finished')) {
         UI.renderGame(room, me(), handlers);
       } else {
@@ -92,7 +94,7 @@
   }
 
   async function leave() {
-    try { await API.leaveRoom(); room = null; UI.toast('已离开房间', true); await refresh(); }
+    try { var result = await API.leaveRoom(); room = null; UI.toast(result.message || '已离开房间', true); await refresh(); }
     catch (error) { UI.toast(error.message, false); }
   }
 

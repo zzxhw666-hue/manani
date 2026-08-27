@@ -1,6 +1,9 @@
 window.MANILA_UI = (function () {
   var D = window.MANILA_DATA;
   var currentScreen = '';
+  var eventCursors = {};
+  var eventQueue = [];
+  var eventPlaying = false;
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -13,6 +16,11 @@ window.MANILA_UI = (function () {
     ['auth', 'lobby', 'game'].forEach(function (screen) {
       document.getElementById('screen-' + screen).classList.toggle('hidden', screen !== name);
     });
+    if (name !== 'game') {
+      eventQueue = [];
+      var eventRoot = document.getElementById('event-root');
+      if (eventRoot) eventRoot.innerHTML = '';
+    }
   }
 
   function toast(message, ok) {
@@ -38,6 +46,12 @@ window.MANILA_UI = (function () {
     return mask;
   }
 
+  function confirmDisband(room, handlers) {
+    modal('退出并解散房间', '<div class="disband-warning"><span>⚠</span><p><b>任意一名真人玩家退出，本局会立即解散。</b><br>所有玩家都将返回大厅，当前进度不会保留。</p></div>', function () {
+      handlers.leave();
+    }, '确认退出并解散');
+  }
+
   function nickname(room, pid) {
     var player = (room.players || []).find(function (item) { return item.id === pid; });
     return player ? player.nickname : '—';
@@ -61,6 +75,7 @@ window.MANILA_UI = (function () {
   function renderLobby(me, rooms, room, handlers) {
     show('lobby');
     document.getElementById('lobby-me').textContent = '商人 · ' + me.nickname;
+    document.getElementById('logout').classList.toggle('hidden', Boolean(room));
     var list = document.getElementById('room-list');
     list.innerHTML = rooms.length ? rooms.map(function (item) {
       return '<article class="room-row"><div><strong>' + esc(item.name) + '</strong><span class="room-code">' + esc(item.code) + '</span><small>房主 ' + esc(item.host) + ' · ' + item.count + '/' + item.maxPlayers + ' 人</small></div><button class="btn secondary small" data-join="' + esc(item.code) + '" type="button">加入</button></article>';
@@ -71,21 +86,25 @@ window.MANILA_UI = (function () {
     if (!room) { panel.classList.add('hidden'); panel.innerHTML = ''; return; }
     panel.classList.remove('hidden');
     panel.innerHTML = '<div class="panel-number">03</div><div class="room-ticket"><span>你的房间码</span><strong>' + esc(room.code) + '</strong><button class="btn ghost small" data-copy type="button">复制</button></div><h2>' + esc(room.name) + '</h2><div class="waiting-players">' + room.players.map(function (player, index) {
-      return '<div class="waiting-player"><span class="seat-no">' + String(index + 1).padStart(2, '0') + '</span><span class="player-dot" style="--player:' + player.color + '"></span><strong>' + esc(player.nickname) + '</strong>' + (player.id === room.hostId ? '<em>房主</em>' : '') + '</div>';
+      return '<div class="waiting-player ' + (player.isBot ? 'bot' : '') + '"><span class="seat-no">' + String(index + 1).padStart(2, '0') + '</span><span class="player-dot" style="--player:' + player.color + '"></span><strong>' + esc(player.nickname) + '</strong>' + (player.id === room.hostId ? '<em>房主</em>' : '') + (player.isBot ? '<em class="bot-tag">人机</em>' + (room.hostId === me.id ? '<button class="remove-bot" data-remove-bot="' + esc(player.id) + '" type="button" title="移除人机">×</button>' : '') : '') + '</div>';
     }).join('') + Array.from({ length: Math.max(0, room.maxPlayers - room.players.length) }, function (_, index) {
       return '<div class="waiting-player open"><span class="seat-no">' + String(room.players.length + index + 1).padStart(2, '0') + '</span><span class="player-dot"></span><span>等待商人加入</span></div>';
-    }).join('') + '</div><p class="lobby-note">凑齐 3–5 人即可开局。3 人局每人使用 4 名帮手。</p><div class="panel-actions">' + (room.hostId === me.id ? '<button class="btn primary" data-start type="button" ' + (room.players.length < 3 ? 'disabled' : '') + '>开始航程</button>' : '<span class="waiting-copy">等待房主开局…</span>') + '<button class="btn danger" data-leave type="button">离开房间</button></div>';
+    }).join('') + '</div><p class="lobby-note">不足 3 人时，房主可用人机补位。3 人局每人使用 4 名帮手。</p><div class="panel-actions">' + (room.hostId === me.id ? (room.players.length < room.maxPlayers ? '<button class="btn secondary" data-add-bot type="button">+ 添加人机</button>' : '') + '<button class="btn primary" data-start type="button" ' + (room.players.length < 3 ? 'disabled' : '') + '>开始航程</button>' : '<span class="waiting-copy">等待房主开局…</span>') + '<button class="btn danger" data-leave type="button">退出并解散</button></div>';
     var copy = panel.querySelector('[data-copy]');
     copy.onclick = function () { navigator.clipboard.writeText(room.code).then(function () { toast('房间码已复制', true); }); };
     var start = panel.querySelector('[data-start]');
     if (start) start.onclick = handlers.start;
-    panel.querySelector('[data-leave]').onclick = handlers.leave;
+    var addBot = panel.querySelector('[data-add-bot]');
+    if (addBot) addBot.onclick = function () { handlers.act('add-bot'); };
+    panel.querySelectorAll('[data-remove-bot]').forEach(function (button) { button.onclick = function () { handlers.act('remove-bot', { botId: button.dataset.removeBot }); }; });
+    panel.querySelector('[data-leave]').onclick = function () { confirmDisband(room, handlers); };
   }
 
   function renderHeader(room, me, handlers) {
     var header = document.getElementById('game-header');
-    header.innerHTML = '<div class="game-brand"><span class="top-kicker">THE MERCHANTS OF</span><strong>马尼拉</strong></div><div class="header-divider"></div><div class="voyage-meta"><span>航程</span><strong>' + room.round + '</strong></div><div class="phase-pill"><i></i>' + esc(D.phaseNames[room.phase] || room.phase) + '</div><div class="harbor-chip"><span>港务长</span><b>' + esc(nickname(room, room.harborMasterId)) + '</b></div><div class="header-spacer"></div><span class="code-chip">房间 ' + esc(room.code) + '</span><button class="btn ghost small" data-rules type="button">规则</button>';
+    header.innerHTML = '<div class="game-brand"><span class="top-kicker">THE MERCHANTS OF</span><strong>马尼拉</strong></div><div class="header-divider"></div><div class="voyage-meta"><span>航程</span><strong>' + room.round + '</strong></div><div class="phase-pill"><i></i>' + esc(D.phaseNames[room.phase] || room.phase) + '</div><div class="harbor-chip"><span>港务长</span><b>' + esc(nickname(room, room.harborMasterId)) + '</b></div><div class="header-spacer"></div><span class="code-chip">房间 ' + esc(room.code) + '</span><button class="btn ghost small" data-rules type="button">规则</button><button class="btn danger small" data-leave type="button">退出房间</button>';
     header.querySelector('[data-rules]').onclick = function () { showRules(); };
+    header.querySelector('[data-leave]').onclick = function () { confirmDisband(room, handlers); };
   }
 
   function marketHtml(room) {
@@ -179,7 +198,7 @@ window.MANILA_UI = (function () {
   function playersHtml(room, me) {
     return '<section class="players box"><div class="section-heading compact"><div><span class="section-no">04</span><h2>商人席位</h2></div></div><div class="player-list">' + room.players.map(function (player) {
       var active = room.currentPlayerId === player.id;
-      return '<article class="player-line ' + (player.id === me.id ? 'me' : '') + ' ' + (active ? 'active' : '') + '"><span class="player-dot" style="--player:' + player.color + '"></span><div><strong>' + esc(player.nickname) + (player.id === me.id ? ' · 你' : '') + '</strong><small>' + (player.id === room.harborMasterId ? '港务长 · ' : '') + player.shareCount + ' 股股票' + (player.mortgagedCount ? ' · ' + player.mortgagedCount + ' 股抵押' : '') + '</small></div><b>' + player.cash + '₱</b><span class="pawn-count">' + player.pawnsAvailable + ' 帮手</span></article>';
+      return '<article class="player-line ' + (player.id === me.id ? 'me' : '') + ' ' + (active ? 'active' : '') + ' ' + (player.isBot ? 'bot' : '') + '"><span class="player-dot" style="--player:' + player.color + '"></span><div><strong>' + esc(player.nickname) + (player.isBot ? ' <i class="inline-bot-tag">人机</i>' : '') + (player.id === me.id ? ' · 你' : '') + '</strong><small>' + (player.id === room.harborMasterId ? '港务长 · ' : '') + player.shareCount + ' 股股票' + (player.mortgagedCount ? ' · ' + player.mortgagedCount + ' 股抵押' : '') + '</small></div><b>' + player.cash + '₱</b><span class="pawn-count">' + player.pawnsAvailable + ' 帮手</span></article>';
     }).join('') + '</div></section>';
   }
 
@@ -190,6 +209,96 @@ window.MANILA_UI = (function () {
   function scoreHtml(room) {
     if (room.status !== 'finished') return '';
     return '<section class="score-overlay box"><span class="trophy">🏆</span><div><span class="top-kicker">FINAL FORTUNE</span><h2>最终财富</h2><p>' + room.winners.map(function (pid) { return esc(nickname(room, pid)); }).join('、') + ' 成为马尼拉最成功的商人</p></div><div class="score-table">' + room.scores.map(function (score, index) { return '<div class="score-row ' + (index === 0 ? 'winner' : '') + '"><b>' + (index + 1) + '</b><strong>' + esc(score.nickname) + '</strong><span>现金 ' + score.cash + '</span><span>股票 ' + score.stockValue + '</span><span>债务 −' + score.debt + '</span><em>' + score.total + '₱</em></div>'; }).join('') + '</div></section>';
+  }
+
+  function finishSpecialEvent(node, delay) {
+    setTimeout(function () {
+      node.classList.add('event-leaving');
+      setTimeout(function () {
+        node.remove();
+        eventPlaying = false;
+        playNextSpecialEvent();
+      }, 280);
+    }, delay);
+  }
+
+  function playNextSpecialEvent() {
+    if (eventPlaying || !eventQueue.length || currentScreen !== 'game') return;
+    eventPlaying = true;
+    var job = eventQueue.shift();
+    var event = job.event;
+    var room = job.room;
+    var payload = event.payload || {};
+    var root = document.getElementById('event-root');
+    var node = document.createElement('div');
+    node.className = 'event-overlay event-' + esc(event.type);
+
+    if (event.type === 'dice') {
+      var wares = D.wareIds.filter(function (ware) { return payload.results && payload.results[ware] != null; });
+      node.innerHTML = '<div class="event-stage dice-stage"><span class="event-kicker">ROUND ' + Number(payload.movementRound || 0) + ' · 全员同步</span><h2>命运正在旋转…</h2><div class="event-dice-row">' + wares.map(function (ware, index) { return '<div class="event-die" style="--ware:' + D.wares[ware].color + ';--delay:' + (index * 80) + 'ms"><span>' + D.wares[ware].icon + '</span><b data-event-die="' + ware + '">?</b><small>' + D.wares[ware].name + '</small></div>'; }).join('') + '</div><p>骰子即将揭晓</p></div>';
+      root.appendChild(node);
+      var diceNodes = Array.from(node.querySelectorAll('[data-event-die]'));
+      var spinner = setInterval(function () {
+        diceNodes.forEach(function (die) { die.textContent = String(1 + Math.floor(Math.random() * 6)); });
+      }, 75);
+      var revealDelay = Math.max(140, Number(event.revealAt || event.at) - Date.now());
+      setTimeout(function () {
+        clearInterval(spinner);
+        diceNodes.forEach(function (die) { die.textContent = payload.results[die.dataset.eventDie]; });
+        node.classList.add('revealed');
+        node.querySelector('h2').textContent = '骰点揭晓！';
+        node.querySelector('p').textContent = '港务长将决定移船顺序';
+        finishSpecialEvent(node, 1250);
+      }, revealDelay);
+      return;
+    }
+
+    if (event.type === 'pirate_board') {
+      node.innerHTML = '<div class="event-stage pirate-stage"><div class="pirate-emblem">☠</div><span class="event-kicker">PIRATES ABOARD</span><h2>海盗成功登船！</h2><p><b>' + esc(nickname(room, payload.pid)) + '</b> 的海盗占领了' + esc(D.wares[payload.ware].name) + '船船员位</p></div>';
+      root.appendChild(node);
+      finishSpecialEvent(node, 1450);
+      return;
+    }
+
+    if (event.type === 'pirate_plunder') {
+      var cargo = (payload.wares || []).map(function (ware) { return D.wares[ware].icon + D.wares[ware].name; }).join('、');
+      node.innerHTML = '<div class="event-stage pirate-stage plunder"><div class="pirate-emblem">☠</div><span class="event-kicker">PLUNDER TRIGGERED · 全员同步</span><h2>海盗抢船成功！</h2><p>' + esc(cargo) + ' 已被劫下，船长 <b>' + esc(nickname(room, payload.captainId)) + '</b> 将决定去向</p></div>';
+      root.appendChild(node);
+      finishSpecialEvent(node, 1900);
+      return;
+    }
+
+    if (event.type === 'market_rise') {
+      node.innerHTML = '<div class="event-stage market-event-stage"><div class="market-arrow">↗</div><span class="event-kicker">BLACK MARKET</span><h2>抵港货物涨价</h2><div class="market-event-list">' + (payload.delivered || []).map(function (item) { return '<span style="--ware:' + D.wares[item.ware].color + '">' + D.wares[item.ware].icon + ' ' + D.wares[item.ware].name + '<b>' + item.price + '₱</b></span>'; }).join('') + '</div></div>';
+      root.appendChild(node);
+      finishSpecialEvent(node, 1500);
+      return;
+    }
+
+    if (event.type === 'game_end') {
+      node.innerHTML = '<div class="event-stage victory-stage"><div class="victory-trophy">🏆</div><span class="event-kicker">FINAL FORTUNE</span><h2>' + (payload.winnerIds || []).map(function (pid) { return esc(nickname(room, pid)); }).join('、') + ' 获胜</h2><p>最终财富 ' + Number(payload.top || 0) + '₱</p></div>';
+      root.appendChild(node);
+      finishSpecialEvent(node, 2400);
+      return;
+    }
+
+    eventPlaying = false;
+    playNextSpecialEvent();
+  }
+
+  function syncRoomEvents(room) {
+    var events = Array.isArray(room.events) ? room.events : [];
+    var cursor = eventCursors[room.code];
+    if (cursor == null) {
+      // A reconnect may receive the retained event history. Only replay events
+      // fresh enough to still belong to the action everyone is watching.
+      cursor = events.filter(function (event) { return Date.now() - event.at > 8000; }).reduce(function (max, event) { return Math.max(max, event.id); }, 0);
+    }
+    var unseen = events.filter(function (event) { return event.id > cursor; });
+    if (events.length) eventCursors[room.code] = Math.max.apply(null, events.map(function (event) { return event.id; }));
+    else eventCursors[room.code] = cursor;
+    unseen.forEach(function (event) { eventQueue.push({ event: event, room: room }); });
+    playNextSpecialEvent();
   }
 
   function bindGame(root, room, me, handlers) {
@@ -222,6 +331,7 @@ window.MANILA_UI = (function () {
     var root = document.getElementById('game-root');
     root.innerHTML = scoreHtml(room) + '<div class="game-layout"><main class="game-main">' + marketHtml(room) + (room.boats.length ? boardHtml(room, self) : '') + '</main><aside class="game-side">' + currentActionHtml(room, self) + assetsHtml(room, self) + playersHtml(room, self) + logChatHtml(room) + '</aside></div>';
     bindGame(root, room, self, handlers);
+    syncRoomEvents(room);
   }
 
   function setupModal(room, handlers) {

@@ -5,7 +5,10 @@ const assert = require('node:assert/strict');
 const {
   createRoom,
   addPlayer,
+  addBot,
+  removeBot,
   dispatch,
+  runBotTurn,
   MARKET_TRACK,
 } = require('../lib/game');
 
@@ -50,6 +53,32 @@ test('3 人局使用 4 名帮手，并在第一次掷骰前完成两轮放置', 
   assert.equal(room.phase, 'dice');
   assert.equal(room.movementRound, 1);
   assert.equal(room.placementRound, 2);
+});
+
+test('房主可手动增删人机，人机会自动完成竞拍、布船与自己的派遣回合', () => {
+  const room = createRoom({ code: 'BOT234', name: '人机测试局', maxPlayers: 3, host: { id: 'p1', nickname: '真人房主' } });
+  addBot(room, 'p1');
+  addBot(room, 'p1');
+  assert.equal(room.players.filter((player) => player.isBot).length, 2);
+
+  const removedId = room.players.find((player) => player.isBot).id;
+  removeBot(room, 'p1', removedId);
+  assert.equal(room.players.length, 2);
+  addBot(room, 'p1');
+
+  dispatch(room, 'p1', 'start-game', {}, constant(0.42));
+  dispatch(room, 'p1', 'pass-auction');
+  let botSteps = 0;
+  while (botSteps < 60) {
+    room.lockedUntil = 0;
+    const result = runBotTurn(room, constant(0.6));
+    if (!result.acted) break;
+    botSteps += 1;
+  }
+  assert.ok(botSteps > 2);
+  assert.equal(room.phase, 'placement');
+  assert.equal(room.currentPlayerId, 'p1');
+  assert.equal(room.boats.length, 3);
 });
 
 test('港务长依次移船决定同轮抵港的 A/B/C 停靠顺序，抵港货物全部涨价', () => {
@@ -105,6 +134,20 @@ test('第二轮停在 13 的海盗可一人登船、一人留守；第三轮留�
   assert.equal(room.market.jade, 1);
   assert.equal(room.market.nutmeg, 0);
   assert.ok(room.players[0].cash >= 24, '海盗应获得肉豆蔻抢劫奖金');
+  assert.ok(room.events.some((event) => event.type === 'pirate_board'));
+  assert.ok(room.events.some((event) => event.type === 'pirate_plunder'));
+});
+
+test('掷骰结果生成带统一揭晓时间的全员同步事件', () => {
+  const room = makeRoom(3);
+  winAuctionAndSetup(room);
+  stopAllCurrentPlacements(room);
+  dispatch(room, 'p1', 'roll', {}, sequence([0, 0.5, 0.99]));
+  const event = room.events.at(-1);
+  assert.equal(event.type, 'dice');
+  assert.deepEqual(event.payload.results, { ginseng: 1, nutmeg: 4, jade: 6 });
+  assert.ok(event.revealAt > event.at);
+  assert.equal(room.lockedUntil, event.revealAt);
 });
 
 test('无海盗时第三轮恰好停在 13 的船按原版规则进入船厂', () => {

@@ -35,6 +35,23 @@ function nowLog(room, text, type = 'info') {
   if (room.logs.length > 160) room.logs.splice(0, room.logs.length - 160);
 }
 
+function specialEvent(room, type, payload = {}, duration = 0) {
+  room.eventCounter = (room.eventCounter || 0) + 1;
+  if (!Array.isArray(room.events)) room.events = [];
+  const at = Date.now();
+  const event = {
+    id: room.eventCounter,
+    type,
+    at,
+    revealAt: duration ? at + duration : at,
+    payload: clone(payload),
+  };
+  room.events.push(event);
+  if (room.events.length > 24) room.events.splice(0, room.events.length - 24);
+  if (duration) room.lockedUntil = Math.max(Number(room.lockedUntil) || 0, event.revealAt);
+  return event;
+}
+
 function playerOf(room, pid) {
   return room.players.find((player) => player.id === pid);
 }
@@ -101,6 +118,10 @@ function createRoom({ code, name, maxPlayers, host }) {
     winners: [],
     scores: [],
     tokenCounter: 0,
+    botCounter: 0,
+    eventCounter: 0,
+    events: [],
+    lockedUntil: 0,
   };
   addPlayer(room, host);
   nowLog(room, `${host.nickname} 创建了房间`);
@@ -115,7 +136,8 @@ function addPlayer(room, identity) {
   room.players.push({
     id: identity.id,
     nickname: identity.nickname,
-    color: PLAYER_COLORS[room.players.length],
+    color: PLAYER_COLORS.find((color) => !room.players.some((player) => player.color === color)) || PLAYER_COLORS[room.players.length],
+    isBot: Boolean(identity.isBot),
     cash: 30,
     shares: Object.fromEntries(WARE_IDS.map((id) => [id, 0])),
     mortgaged: Object.fromEntries(WARE_IDS.map((id) => [id, 0])),
@@ -126,6 +148,33 @@ function addPlayer(room, identity) {
   room.version += 1;
   nowLog(room, `${identity.nickname} 加入了房间`);
   return room;
+}
+
+function addBot(room, pid) {
+  if (room.hostId !== pid) throw new Error('只有房主可以添加人机');
+  if (room.status !== 'waiting') throw new Error('只能在开局前添加人机');
+  if (room.players.length >= room.maxPlayers) throw new Error('房间已满');
+  room.botCounter = (room.botCounter || 0) + 1;
+  let nickname = `电脑商人 ${room.botCounter}`;
+  while (room.players.some((player) => player.nickname === nickname)) {
+    room.botCounter += 1;
+    nickname = `电脑商人 ${room.botCounter}`;
+  }
+  return addPlayer(room, {
+    id: `bot_${room.code}_${room.botCounter}`,
+    nickname,
+    isBot: true,
+  });
+}
+
+function removeBot(room, pid, botId) {
+  if (room.hostId !== pid) throw new Error('只有房主可以移除人机');
+  if (room.status !== 'waiting') throw new Error('只能在开局前移除人机');
+  const bot = playerOf(room, botId);
+  if (!bot || !bot.isBot) throw new Error('该座位不是人机');
+  room.players = room.players.filter((player) => player.id !== botId);
+  room.version += 1;
+  nowLog(room, `${bot.nickname} 离开了房间`);
 }
 
 function removeWaitingPlayer(room, pid) {
@@ -207,6 +256,7 @@ function resetVoyageBoard(room) {
   room.pilotQueue = [];
   room.plunderQueue = [];
   room.plunderPirates = [];
+  room.lockedUntil = 0;
   for (const player of room.players) {
     player.pawnsAvailable = player.pawnsTotal;
     player.stoppedPlacing = false;
@@ -452,6 +502,11 @@ function rollDice(room, pid, random = Math.random) {
     room.pendingMoves.push(boat.ware);
   }
   nowLog(room, `第 ${room.movementRound} 次骰点：${Object.entries(room.dice).map(([ware, value]) => `${WARES[ware].name}${value}`).join(' / ')}`, 'dice');
+  specialEvent(room, 'dice', {
+    actorId: pid,
+    movementRound: room.movementRound,
+    results: room.dice,
+  }, 2200);
   if (!room.pendingMoves.length) return finishMovement(room);
   room.phase = 'move';
   room.currentPlayerId = pid;
@@ -515,6 +570,7 @@ function pirateBoard(room, pid, ware) {
     const [token] = room.placements.pirates.splice(liveIndex, 1);
     boat.crew.push(token);
     nowLog(room, `${playerName(room, pid)} 的海盗登上${WARES[ware].name}船`, 'pirate');
+    specialEvent(room, 'pirate_board', { pid, ware }, 1100);
   } else {
     nowLog(room, `${playerName(room, pid)} 的海盗留在海盗船等待抢劫`, 'pirate');
   }
@@ -583,6 +639,11 @@ function finalizeVoyageMovement(room) {
     room.phase = 'pirate_destination';
     room.currentPlayerId = pirates[0].pid;
     nowLog(room, `海盗抢下 ${plundered.map((boat) => WARES[boat.ware].name).join('、')}船，船长决定去向`, 'pirate');
+    specialEvent(room, 'pirate_plunder', {
+      captainId: pirates[0].pid,
+      pirateIds: pirates.map((token) => token.pid),
+      wares: plundered.map((boat) => boat.ware),
+    }, 1700);
     return;
   }
   settleVoyage(room);
@@ -662,6 +723,9 @@ function settleVoyage(room) {
   }
   if (delivered.length) nowLog(room, `黑市涨价：${delivered.join(' / ')}`, 'market');
   else nowLog(room, '本航程没有货物抵港，黑市价格不变', 'market');
+  if (delivered.length) specialEvent(room, 'market_rise', {
+    delivered: room.boats.filter((item) => item.status === 'port').map((boat) => ({ ware: boat.ware, price: MARKET_TRACK[room.market[boat.ware]] })),
+  });
 
   if (WARE_IDS.some((ware) => MARKET_TRACK[room.market[ware]] >= 30)) return finishGame(room);
   beginVoyage(room, room.previousHarborMasterId);
@@ -679,6 +743,119 @@ function finishGame(room) {
   const top = room.scores[0].total;
   room.winners = room.scores.filter((score) => score.total === top).map((score) => score.pid);
   nowLog(room, `游戏结束：${room.winners.map((pid) => playerName(room, pid)).join('、')} 获胜`, 'system');
+  specialEvent(room, 'game_end', { winnerIds: room.winners, top });
+}
+
+function totalShares(player) {
+  return WARE_IDS.reduce((sum, ware) => sum + player.shares[ware], 0);
+}
+
+function botAuction(room, bot, random) {
+  const personality = bot.id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0) % 4;
+  const cap = Math.min(maxFunds(bot), 4 + room.round * 2 + personality + Math.min(3, totalShares(bot)));
+  const nextBid = room.auction.highBid + 1;
+  if (nextBid <= cap && (!room.auction.leaderId || random() > 0.18)) bid(room, bot.id, nextBid);
+  else passAuction(room, bot.id);
+}
+
+function botHarborSetup(room, bot) {
+  const ranked = WARE_IDS.slice().sort((a, b) => {
+    const score = (ware) => bot.shares[ware] * 8 + room.market[ware] * 3 + WARES[ware].pool / 12 + room.stockSupply[ware];
+    return score(b) - score(a);
+  });
+  const wares = ranked.slice(0, 3);
+  const starts = { [wares[0]]: 4, [wares[1]]: 3, [wares[2]]: 2 };
+  const buyWare = ranked.find((ware) => {
+    const price = Math.max(5, MARKET_TRACK[room.market[ware]]);
+    return room.stockSupply[ware] > 0 && bot.cash - price >= 10;
+  }) || null;
+  harborSetup(room, bot.id, { wares, starts, buyWare });
+}
+
+function botLocationScore(room, bot, location) {
+  if (location.type === 'boat') {
+    const ware = location.id.split(':')[1];
+    const boat = room.boats.find((item) => item.ware === ware);
+    const shareInterest = bot.shares[ware] * 2.5;
+    const payout = WARES[ware].pool / (boat.crew.length + 1);
+    return boat.position * 0.65 + payout / 5 + shareInterest - location.cost * 0.65;
+  }
+  if (location.type === 'port') return 4.5 + room.movementRound * 1.5 - location.cost * 0.45;
+  if (location.type === 'shipyard') return 5.5 - room.movementRound * 0.7 - location.cost * 0.4;
+  if (location.type === 'pirate') return room.placements.pirates.length ? 8.2 : 7.3;
+  if (location.id === 'pilot:large') return 6.4;
+  if (location.id === 'pilot:small') return 5.6;
+  if (location.type === 'insurance') return bot.cash < 16 ? 6 : 2.5;
+  return 0;
+}
+
+function botPlacement(room, bot, random) {
+  const locations = legalLocations(room);
+  if (!locations.length || bot.pawnsAvailable <= 0) return passPlacement(room, bot.id);
+  const ranked = locations
+    .map((location) => ({ location, score: botLocationScore(room, bot, location) + random() * 1.4 }))
+    .sort((a, b) => b.score - a.score);
+  place(room, bot.id, ranked[0].location.id);
+}
+
+function botMoveBoat(room, bot) {
+  const ware = room.pendingMoves.slice().sort((a, b) => {
+    const boatA = room.boats.find((boat) => boat.ware === a);
+    const boatB = room.boats.find((boat) => boat.ware === b);
+    const score = (id, boat) => (boat.position + room.dice[id] > 13 ? 100 : 0) + bot.shares[id] * 6 + WARES[id].pool / 12;
+    return score(b, boatB) - score(a, boatA);
+  })[0];
+  moveBoat(room, bot.id, ware);
+}
+
+function botPirateBoard(room, bot) {
+  const targets = room.boats
+    .filter((boat) => boat.status === 'sea' && boat.position === 13 && boat.crew.length < WARES[boat.ware].crewCosts.length)
+    .sort((a, b) => (WARES[b.ware].pool / (b.crew.length + 1)) - (WARES[a.ware].pool / (a.crew.length + 1)));
+  // Two pirates work well as a team: the first boards, while the final pirate
+  // stays behind to preserve the third-round plunder threat.
+  const ware = targets.length && room.placements.pirates.length > 1 ? targets[0].ware : null;
+  pirateBoard(room, bot.id, ware);
+}
+
+function botPilot(room, bot) {
+  const job = room.pilotQueue[0];
+  const targets = room.boats.filter((boat) => boat.status === 'sea' && boat.position <= 13);
+  if (!targets.length) return pilotMove(room, bot.id, []);
+  targets.sort((a, b) => {
+    const interest = (boat) => bot.shares[boat.ware] * 7 + boat.crew.filter((token) => token.pid === bot.id).length * 8 + boat.position;
+    return interest(b) - interest(a);
+  });
+  pilotMove(room, bot.id, [{ ware: targets[0].ware, delta: job.kind === 'large' ? 2 : 1 }]);
+}
+
+function botPirateDestination(room, bot) {
+  const ware = room.plunderQueue[0];
+  const ownsPortBet = DOCK_LETTERS.some((letter) => room.placements.port[letter]?.pid === bot.id);
+  const ownsYardBet = DOCK_LETTERS.some((letter) => room.placements.shipyard[letter]?.pid === bot.id);
+  const area = bot.shares[ware] > 0 || ownsPortBet || !ownsYardBet ? 'port' : 'shipyard';
+  pirateDestination(room, bot.id, area);
+}
+
+function runBotTurn(room, random = Math.random) {
+  if (room.status !== 'playing') return { acted: false };
+  const wait = (Number(room.lockedUntil) || 0) - Date.now();
+  if (wait > 0) return { acted: false, wait };
+  const bot = playerOf(room, room.currentPlayerId);
+  if (!bot?.isBot) return { acted: false };
+  switch (room.phase) {
+    case 'auction': botAuction(room, bot, random); break;
+    case 'harbor_setup': botHarborSetup(room, bot); break;
+    case 'placement': botPlacement(room, bot, random); break;
+    case 'dice': rollDice(room, bot.id, random); break;
+    case 'move': botMoveBoat(room, bot); break;
+    case 'pirate_board': botPirateBoard(room, bot); break;
+    case 'pilot': botPilot(room, bot); break;
+    case 'pirate_destination': botPirateDestination(room, bot); break;
+    default: return { acted: false };
+  }
+  room.version += 1;
+  return { acted: true, botId: bot.id, phase: room.phase };
 }
 
 function mortgage(room, pid, ware) {
@@ -699,6 +876,8 @@ function redeem(room, pid, ware) {
 function dispatch(room, pid, action, payload = {}, random = Math.random) {
   if (!playerOf(room, pid)) throw new Error('你不在这个房间');
   switch (action) {
+    case 'add-bot': addBot(room, pid); break;
+    case 'remove-bot': removeBot(room, pid, payload.botId); break;
     case 'start-game': startGame(room, pid, random); break;
     case 'bid': bid(room, pid, payload.amount); break;
     case 'pass-auction': passAuction(room, pid); break;
@@ -740,6 +919,8 @@ module.exports = {
   SLOT_DATA,
   createRoom,
   addPlayer,
+  addBot,
+  removeBot,
   removeWaitingPlayer,
   startGame,
   dispatch,
@@ -747,5 +928,7 @@ module.exports = {
   playerOf,
   legalLocations,
   maxFunds,
+  runBotTurn,
+  specialEvent,
   clone,
 };
