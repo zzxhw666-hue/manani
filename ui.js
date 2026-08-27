@@ -5,6 +5,10 @@ window.MANILA_UI = (function () {
   var eventQueue = [];
   var eventPlaying = false;
   var toastTimer = null;
+  var turnAlertTimer = null;
+  var titleFlashTimer = null;
+  var titleFlashStopTimer = null;
+  var baseTitle = document.title;
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -34,6 +38,45 @@ window.MANILA_UI = (function () {
     root.appendChild(node);
     toastTimer = setTimeout(function () { node.classList.add('leaving'); setTimeout(function () { node.remove(); }, 300); }, 3200);
   }
+
+  function stopTitleFlash() {
+    clearInterval(titleFlashTimer);
+    clearTimeout(titleFlashStopTimer);
+    titleFlashTimer = null;
+    titleFlashStopTimer = null;
+    document.title = baseTitle;
+  }
+
+  function alertTurn() {
+    var root = document.getElementById('turn-alert-root');
+    clearTimeout(turnAlertTimer);
+    root.innerHTML = '<div class="turn-alert-card"><span>YOUR MOVE</span><strong>轮到你行动</strong><small>请查看当前行动面板</small></div>';
+    document.body.classList.remove('my-turn-flash');
+    void document.body.offsetWidth;
+    document.body.classList.add('my-turn-flash');
+    turnAlertTimer = setTimeout(function () {
+      root.innerHTML = '';
+      document.body.classList.remove('my-turn-flash');
+    }, 2400);
+
+    if (typeof navigator.vibrate === 'function') {
+      try { navigator.vibrate([160, 90, 160]); } catch (_) {}
+    }
+
+    if (document.hidden || !document.hasFocus()) {
+      stopTitleFlash();
+      var showAlert = false;
+      document.title = '【轮到你】马尼拉';
+      titleFlashTimer = setInterval(function () {
+        showAlert = !showAlert;
+        document.title = showAlert ? '【轮到你】马尼拉' : baseTitle;
+      }, 650);
+      titleFlashStopTimer = setTimeout(stopTitleFlash, 20000);
+    }
+  }
+
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) stopTitleFlash(); });
+  window.addEventListener('focus', stopTitleFlash);
 
   function modal(title, body, onConfirm, confirmLabel) {
     var root = document.getElementById('modal-root');
@@ -404,5 +447,5 @@ window.MANILA_UI = (function () {
     modal('规则速查', body, null);
   }
 
-  return { show: show, toast: toast, renderLobby: renderLobby, renderGame: renderGame, currentScreen: function () { return currentScreen; } };
+  return { show: show, toast: toast, alertTurn: alertTurn, renderLobby: renderLobby, renderGame: renderGame, currentScreen: function () { return currentScreen; } };
 })();

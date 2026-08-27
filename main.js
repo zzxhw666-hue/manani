@@ -6,8 +6,23 @@
   var eventSource = null;
   var fallbackTimer = null;
   var busy = false;
+  var observedRoomCode = '';
+  var observedTurnOwnerId = null;
 
   function me() { return { id: API.playerId(), nickname: API.nickname() }; }
+
+  function observeTurn(nextRoom) {
+    if (!nextRoom || nextRoom.status !== 'playing') {
+      observedRoomCode = '';
+      observedTurnOwnerId = null;
+      return;
+    }
+    var changedRoom = observedRoomCode !== nextRoom.code;
+    var previousOwnerId = changedRoom ? null : observedTurnOwnerId;
+    observedRoomCode = nextRoom.code;
+    observedTurnOwnerId = nextRoom.currentPlayerId || null;
+    if (observedTurnOwnerId === API.playerId() && previousOwnerId !== observedTurnOwnerId) UI.alertTurn();
+  }
 
   function setLobbySubmitting(submitting) {
     document.querySelectorAll('#create-room, #join-room, [data-join]').forEach(function (button) {
@@ -59,6 +74,7 @@
       var previousRoom = room;
       var result = await API.state();
       room = result.noRoom ? null : result.room;
+      observeTurn(room);
       if (!room && previousRoom && result.notice) UI.toast(result.notice, false);
       if (room && (room.status === 'playing' || room.status === 'finished')) {
         UI.renderGame(room, me(), handlers);
@@ -84,6 +100,7 @@
       } else {
         room = result.room;
       }
+      observeTurn(room);
       if (room.status === 'playing' || room.status === 'finished') UI.renderGame(room, me(), handlers);
       else await refresh();
     } catch (error) { UI.toast(error.message, false); }
@@ -107,7 +124,7 @@
   }
 
   async function leave() {
-    try { var result = await API.leaveRoom(); room = null; UI.toast(result.message || '已离开房间', true); await refresh(); }
+    try { var result = await API.leaveRoom(); room = null; observeTurn(null); UI.toast(result.message || '已离开房间', true); await refresh(); }
     catch (error) { UI.toast(error.message, false); }
   }
 
@@ -138,7 +155,7 @@
   document.getElementById('join-room').addEventListener('click', function () { join(document.getElementById('room-code').value); });
   document.getElementById('room-code').addEventListener('keydown', function (event) { if (event.key === 'Enter') join(event.target.value); });
   document.getElementById('refresh-lobby').addEventListener('click', refresh);
-  document.getElementById('logout').addEventListener('click', function () { stopUpdates(); API.logout(); room = null; UI.show('auth'); });
+  document.getElementById('logout').addEventListener('click', function () { stopUpdates(); API.logout(); room = null; observeTurn(null); UI.show('auth'); });
 
   if (API.hasSession()) {
     document.getElementById('nickname').value = API.nickname();

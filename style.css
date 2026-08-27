@@ -345,6 +345,16 @@ h1, h2, h3, .game-brand strong { font-family: "Noto Serif SC", "Songti SC", seri
 .toast.error { background: #7b3328; border-color: #b75b4d; }
 .toast.leaving { opacity: 0; transform: translateY(-8px); }
 
+/* 本人行动权到来时的网页提醒 */
+#turn-alert-root { position: fixed; z-index: 190; left: 50%; top: 74px; transform: translateX(-50%); pointer-events: none; }
+.turn-alert-card { min-width: 230px; display: grid; justify-items: center; gap: 3px; padding: 14px 28px; color: #fff9e8; border: 2px solid #e3be66; background: linear-gradient(135deg, #9c3f31, #68291f); box-shadow: 0 14px 45px rgba(0,0,0,.4), 0 0 0 7px rgba(227,190,102,.16); animation: turn-alert-pop 2.4s ease-out both; }
+.turn-alert-card span { color: #f0cc79; font-size: 9px; font-weight: 700; letter-spacing: .28em; }
+.turn-alert-card strong { font-family: "Noto Serif SC", serif; font-size: 24px; letter-spacing: .1em; }
+.turn-alert-card small { color: #eedcc1; font-size: 10px; }
+body.my-turn-flash::before { content: ""; position: fixed; z-index: 185; inset: 0; pointer-events: none; border: 6px solid #e8c46e; box-shadow: inset 0 0 90px rgba(232,196,110,.48); animation: turn-screen-flash 2.4s ease-out both; }
+@keyframes turn-alert-pop { 0% { opacity: 0; transform: translateY(-18px) scale(.84); } 12%, 72% { opacity: 1; transform: translateY(0) scale(1); } 84% { transform: scale(1.04); } 100% { opacity: 0; transform: translateY(-8px) scale(.96); } }
+@keyframes turn-screen-flash { 0%, 100% { opacity: 0; } 10%, 26%, 42% { opacity: 1; } 18%, 34%, 55% { opacity: .18; } }
+
 /* 服务端事件驱动的全员同步动效 */
 .event-overlay { position: fixed; z-index: 160; inset: 0; display: grid; place-items: center; padding: 20px; overflow: hidden; background: radial-gradient(circle at center, rgba(28,83,77,.82), rgba(3,19,18,.96) 68%); backdrop-filter: blur(8px); animation: event-in .28s ease-out both; }
 .event-overlay::before, .event-overlay::after { content: ""; position: absolute; inset: -30%; pointer-events: none; }
@@ -431,8 +441,11 @@ h1, h2, h3, .game-brand strong { font-family: "Noto Serif SC", "Songti SC", seri
   .cash-entries { max-height: none; }
   .settlement-confirm { align-items: stretch; flex-direction: column; gap: 10px; padding: 12px; }
   .settlement-confirm .btn, .settlement-waiting { width: 100%; min-width: 0; margin-left: 0; text-align: center; }
+  #turn-alert-root { top: 18px; width: calc(100vw - 30px); }
+  .turn-alert-card { min-width: 0; width: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .event-overlay, .event-overlay::before, .event-overlay::after, .event-die, .event-overlay.revealed .event-die, .pirate-emblem, .market-arrow, .victory-trophy, .settlement-waiting { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+  .turn-alert-card, body.my-turn-flash::before { animation: none !important; }
 }
