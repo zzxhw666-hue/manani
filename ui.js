@@ -76,9 +76,15 @@ window.MANILA_UI = (function () {
     show('lobby');
     document.getElementById('lobby-me').textContent = '商人 · ' + me.nickname;
     document.getElementById('logout').classList.toggle('hidden', Boolean(room));
+    var inRoom = Boolean(room);
+    ['room-name', 'room-max', 'room-code'].forEach(function (id) { document.getElementById(id).disabled = inRoom; });
+    document.getElementById('create-room').disabled = inRoom;
+    document.getElementById('create-room').textContent = inRoom ? '已在房间中' : '创建房间';
+    document.getElementById('join-room').disabled = inRoom;
+    document.getElementById('room-create-note').classList.toggle('hidden', !inRoom);
     var list = document.getElementById('room-list');
     list.innerHTML = rooms.length ? rooms.map(function (item) {
-      return '<article class="room-row"><div><strong>' + esc(item.name) + '</strong><span class="room-code">' + esc(item.code) + '</span><small>房主 ' + esc(item.host) + ' · ' + item.count + '/' + item.maxPlayers + ' 人</small></div><button class="btn secondary small" data-join="' + esc(item.code) + '" type="button">加入</button></article>';
+      return '<article class="room-row"><div><strong>' + esc(item.name) + '</strong><span class="room-code">' + esc(item.code) + '</span><small>房主 ' + esc(item.host) + ' · ' + item.count + '/' + item.maxPlayers + ' 人</small></div><button class="btn secondary small" data-join="' + esc(item.code) + '" type="button" ' + (inRoom ? 'disabled' : '') + '>加入</button></article>';
     }).join('') : '<div class="empty-state"><span>⚓</span><p>港口暂时没有公开房间</p></div>';
     list.querySelectorAll('[data-join]').forEach(function (button) { button.onclick = function () { handlers.join(button.dataset.join); }; });
 

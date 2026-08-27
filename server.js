@@ -129,6 +129,15 @@ function safeNickname(value) {
   return nickname;
 }
 
+function safeRoomName(value, nickname) {
+  const entered = String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ').replace(/[<>]/g, '');
+  return (entered || `${nickname}的航运局`).slice(0, 24);
+}
+
+function roomNameKey(value) {
+  return String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('zh-CN');
+}
+
 function token() {
   return crypto.randomBytes(24).toString('base64url');
 }
@@ -154,7 +163,11 @@ function sessionFrom(body) {
 }
 
 function currentRoom(session) {
-  return session.roomCode ? state.rooms[session.roomCode] : null;
+  const direct = session.roomCode ? state.rooms[session.roomCode] : null;
+  if (direct?.players.some((player) => !player.isBot && player.id === session.playerId)) return direct;
+  const actual = Object.values(state.rooms).find((room) => room.players.some((player) => !player.isBot && player.id === session.playerId));
+  session.roomCode = actual?.code || null;
+  return actual || null;
 }
 
 async function api(req, res, pathname) {
@@ -186,11 +199,15 @@ async function api(req, res, pathname) {
   }
 
   if (pathname === '/api/rooms/create') {
-    if (currentRoom(session)) throw new Error('请先离开当前房间');
+    if (currentRoom(session)) throw new Error('你已在房间中，请先退出当前房间');
+    const name = safeRoomName(body.name, session.nickname);
+    if (Object.values(state.rooms).some((room) => roomNameKey(room.name) === roomNameKey(name))) {
+      throw new Error('该房间名称已被使用，请换一个名称');
+    }
     const code = roomCode();
     const room = createRoom({
       code,
-      name: String(body.name || '').trim().slice(0, 24),
+      name,
       maxPlayers: Number(body.maxPlayers),
       host: { id: session.playerId, nickname: session.nickname },
     });

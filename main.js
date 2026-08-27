@@ -85,6 +85,7 @@
   }
 
   async function join(code) {
+    if (room) { UI.toast('请先退出当前房间，再加入其他房间', false); return; }
     try {
       var result = await API.joinRoom(String(code || '').trim().toUpperCase());
       room = result.room;
@@ -110,6 +111,7 @@
     event.preventDefault(); login(document.getElementById('nickname').value.trim());
   });
   document.getElementById('create-room').addEventListener('click', async function () {
+    if (room) { UI.toast('请先退出当前房间，再创建新房间', false); return; }
     try {
       var result = await API.createRoom(document.getElementById('room-name').value.trim(), Number(document.getElementById('room-max').value));
       room = result.room; document.getElementById('room-code').value = result.code; UI.toast('房间已创建：' + result.code, true); await refresh();
