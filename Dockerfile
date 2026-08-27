@@ -10,7 +10,6 @@ ENV NODE_ENV=production \
     PORT=4173 \
     DATA_DIR=/data
 
-VOLUME ["/data"]
 EXPOSE 4173
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
