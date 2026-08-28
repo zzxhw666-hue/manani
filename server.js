@@ -4,14 +4,20 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const {
-  createRoom,
-  addPlayer,
-  dispatch,
-  publicRoom,
-  runBotTurn,
-  runTimeoutTurn,
-} = require('./lib/game');
+const manila = require('./lib/game');
+const splendor = require('./lib/splendor');
+
+function engineFor(roomOrMode) {
+  const mode = typeof roomOrMode === 'string' ? roomOrMode : (roomOrMode?.gameMode || 'manila');
+  return mode === 'splendor' ? splendor : manila;
+}
+
+function createRoom(options) { return engineFor(options.gameMode).createRoom(options); }
+function addPlayer(room, identity) { return engineFor(room).addPlayer(room, identity); }
+function dispatch(room, pid, action, payload) { return engineFor(room).dispatch(room, pid, action, payload); }
+function publicRoom(room, viewerId) { return engineFor(room).publicRoom(room, viewerId); }
+function runBotTurn(room) { return engineFor(room).runBotTurn(room); }
+function runTimeoutTurn(room) { return engineFor(room).runTimeoutTurn(room); }
 
 const PORT = Number(process.env.PORT || 4173);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -54,6 +60,7 @@ function notifyClients(scope) {
 
 function decisionStateKey(room) {
   if (!room || room.status !== 'playing' || !room.currentPlayerId) return null;
+  if (room.gameMode === 'splendor') return `splendor_turn:${room.currentPlayerId}:${room.turnNumber}`;
   let detail = '';
   switch (room.phase) {
     case 'auction': detail = `${room.auction?.highBid || 0}:${room.auction?.leaderId || ''}:${(room.auction?.passedIds || []).join(',')}`; break;
@@ -215,9 +222,9 @@ function safeNickname(value) {
   return nickname;
 }
 
-function safeRoomName(value, nickname) {
+function safeRoomName(value, nickname, gameMode) {
   const entered = String(value || '').normalize('NFKC').trim().replace(/\s+/g, ' ').replace(/[<>]/g, '');
-  return (entered || `${nickname}的航运局`).slice(0, 24);
+  return (entered || `${nickname}的${gameMode === 'splendor' ? '珠宝行会' : '航运局'}`).slice(0, 24);
 }
 
 function roomNameKey(value) {
@@ -279,14 +286,15 @@ async function api(req, res, pathname) {
   if (pathname === '/api/rooms/list') {
     const rooms = Object.values(state.rooms)
       .filter((room) => room.status === 'waiting')
-      .map((room) => ({ code: room.code, name: room.name, count: room.players.length, maxPlayers: room.maxPlayers, decisionSeconds: room.decisionSeconds || 20, host: room.players.find((p) => p.id === room.hostId)?.nickname || '—' }))
+      .map((room) => ({ code: room.code, name: room.name, gameMode: room.gameMode || 'manila', count: room.players.length, maxPlayers: room.maxPlayers, decisionSeconds: room.decisionSeconds || 20, host: room.players.find((p) => p.id === room.hostId)?.nickname || '—' }))
       .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
     return json(res, 200, { success: true, rooms });
   }
 
   if (pathname === '/api/rooms/create') {
     if (currentRoom(session)) throw new Error('你已在房间中，请先退出当前房间');
-    const name = safeRoomName(body.name, session.nickname);
+    const requestedMode = body.gameMode === 'splendor' ? 'splendor' : 'manila';
+    const name = safeRoomName(body.name, session.nickname, requestedMode);
     if (Object.values(state.rooms).some((room) => roomNameKey(room.name) === roomNameKey(name))) {
       throw new Error('该房间名称已被使用，请换一个名称');
     }
@@ -294,6 +302,7 @@ async function api(req, res, pathname) {
     const room = createRoom({
       code,
       name,
+      gameMode: requestedMode,
       maxPlayers: Number(body.maxPlayers),
       decisionSeconds: Number(body.decisionSeconds),
       host: { id: session.playerId, nickname: session.nickname },

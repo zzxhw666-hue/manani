@@ -114,6 +114,7 @@ function createRoom({ code, name, maxPlayers, decisionSeconds, host }) {
   const room = {
     code,
     name: name || `${host.nickname}的航运局`,
+    gameMode: 'manila',
     maxPlayers: Math.max(3, Math.min(5, Number(maxPlayers) || 5)),
     hostId: host.id,
     status: 'waiting',

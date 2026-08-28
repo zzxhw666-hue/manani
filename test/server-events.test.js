@@ -90,6 +90,25 @@ test('健康检查与 SSE 在房间变化时即时推送', async (t) => {
   assert.equal(formerHostState.noRoom, true);
   assert.match(formerHostState.notice, /本局已解散/);
 
+  const gemHost = await post('session', { nickname: '珠宝房主' });
+  const gemRoom = await post('rooms/create', {
+    sessionToken: gemHost.sessionToken,
+    name: '第二模式测试房',
+    gameMode: 'splendor',
+    maxPlayers: 2,
+    decisionSeconds: 10,
+  });
+  assert.equal(gemRoom.room.gameMode, 'splendor');
+  assert.equal(gemRoom.room.maxPlayers, 2);
+  const gemListing = await post('rooms/list', { sessionToken: session.sessionToken });
+  assert.equal(gemListing.rooms.find((room) => room.code === gemRoom.code).gameMode, 'splendor');
+  await post('action', { sessionToken: gemHost.sessionToken, action: 'add-bot' });
+  const gemStarted = await post('action', { sessionToken: gemHost.sessionToken, action: 'start-game' });
+  assert.equal(gemStarted.room.status, 'playing');
+  assert.equal(gemStarted.room.deckCounts[1], 36);
+  assert.equal(gemStarted.room.tiers[1].deck, undefined);
+  await post('rooms/leave', { sessionToken: gemHost.sessionToken });
+
   const timedHost = await post('session', { nickname: '限时房主' });
   const timedRoom = await post('rooms/create', {
     sessionToken: timedHost.sessionToken,

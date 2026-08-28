@@ -2,13 +2,8 @@ FROM node:22-alpine
 
 WORKDIR /app
 COPY package.json server.js ./
-COPY game.js ./lib/game.js
-COPY index.html ./public/index.html
-COPY style.css ./public/css/style.css
-COPY data.js ./public/js/data.js
-COPY api.js ./public/js/api.js
-COPY ui.js ./public/js/ui.js
-COPY main.js ./public/js/main.js
+COPY lib ./lib
+COPY public ./public
 
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \

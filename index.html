@@ -39,7 +39,9 @@
       <div class="lobby-grid">
         <section class="paper-card panel create-panel">
           <div class="panel-number">01</div>
-          <h2>建立航运局</h2>
+          <h2>建立游戏房间</h2>
+          <label for="game-mode">游戏模式</label>
+          <select id="game-mode"><option value="manila">马尼拉 · 航运竞逐</option><option value="splendor">璀璨宝石 · 引擎构筑</option></select>
           <label for="room-name">房间名称</label>
           <input id="room-name" maxlength="24" placeholder="例如：周五海运商会">
           <label for="room-max">座位数量</label>
@@ -72,6 +74,7 @@
   <script src="js/data.js"></script>
   <script src="js/api.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/splendor-ui.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>
