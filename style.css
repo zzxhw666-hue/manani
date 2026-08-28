@@ -123,6 +123,14 @@ h1, h2, h3, .game-brand strong { font-family: "Noto Serif SC", "Songti SC", seri
 .voyage-meta strong { font-size: 20px; color: #fff; }
 .phase-pill { background: var(--paper); color: var(--ink); padding: 7px 12px; font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 7px; }
 .phase-pill i { width: 7px; height: 7px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 4px rgba(180,71,52,.17); }
+.decision-clock { min-width: 62px; display: flex; align-items: baseline; justify-content: center; gap: 3px; padding: 5px 9px; color: #d8e5df; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.06); }
+.decision-clock span { margin-right: 3px; color: #9fb5ac; font-size: 9px; }
+.decision-clock strong { min-width: 20px; color: #f3d17e; font-size: 20px; line-height: 1; text-align: right; }
+.decision-clock small { color: #c4d4cc; font-size: 9px; }
+.decision-clock.urgent { border-color: #e9a26e; background: rgba(181,67,49,.24); animation: decision-urgent .7s ease-in-out infinite alternate; }
+.decision-clock.urgent strong { color: #ffb084; }
+.decision-clock.expired strong { color: #ff715b; }
+@keyframes decision-urgent { to { box-shadow: 0 0 0 4px rgba(231,117,85,.18); } }
 .harbor-chip { display: flex; gap: 6px; align-items: baseline; font-size: 11px; color: #9fb5ac; }
 .harbor-chip b { color: #fff; }
 .header-spacer { flex: 1; }
@@ -428,6 +436,8 @@ body.my-turn-flash::before { content: ""; position: fixed; z-index: 185; inset: 
   .auth-card { padding: 38px 25px; }
   .game-brand strong { font-size: 17px; }
   .game-header .btn.small { padding: 6px 7px; font-size: 10px; }
+  .decision-clock { min-width: 52px; padding: 4px 6px; }
+  .decision-clock span { display: none; }
   .event-stage { padding: 26px 12px; }
   .event-die { border-radius: 10px; padding: 7px; }
   .event-die > span { font-size: 17px; }
@@ -448,4 +458,5 @@ body.my-turn-flash::before { content: ""; position: fixed; z-index: 185; inset: 
 @media (prefers-reduced-motion: reduce) {
   .event-overlay, .event-overlay::before, .event-overlay::after, .event-die, .event-overlay.revealed .event-die, .pirate-emblem, .market-arrow, .victory-trophy, .settlement-waiting { animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
   .turn-alert-card, body.my-turn-flash::before { animation: none !important; }
+  .decision-clock.urgent { animation: none !important; }
 }

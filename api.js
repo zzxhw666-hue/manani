@@ -45,7 +45,7 @@ window.MANILA_API = (function () {
     nickname: function () { return nickname; },
     playerId: function () { return playerId; },
     listRooms: function () { return post('rooms/list'); },
-    createRoom: function (name, maxPlayers) { return post('rooms/create', { name: name, maxPlayers: maxPlayers }); },
+    createRoom: function (name, maxPlayers, decisionSeconds) { return post('rooms/create', { name: name, maxPlayers: maxPlayers, decisionSeconds: decisionSeconds }); },
     joinRoom: function (code) { return post('rooms/join', { code: code }); },
     leaveRoom: function () { return post('rooms/leave'); },
     state: function () { return post('rooms/state'); },

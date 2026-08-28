@@ -89,5 +89,26 @@ test('健康检查与 SSE 在房间变化时即时推送', async (t) => {
   const formerHostState = await post('rooms/state', { sessionToken: session.sessionToken });
   assert.equal(formerHostState.noRoom, true);
   assert.match(formerHostState.notice, /本局已解散/);
+
+  const timedHost = await post('session', { nickname: '限时房主' });
+  const timedRoom = await post('rooms/create', {
+    sessionToken: timedHost.sessionToken,
+    name: '服务端倒计时房',
+    maxPlayers: 3,
+    decisionSeconds: 10,
+  });
+  assert.equal(timedRoom.room.decisionSeconds, 10);
+  await post('action', { sessionToken: timedHost.sessionToken, action: 'add-bot' });
+  await post('action', { sessionToken: timedHost.sessionToken, action: 'add-bot' });
+  await post('action', { sessionToken: timedHost.sessionToken, action: 'start-game' });
+  const liveTimedRoom = state.rooms[timedRoom.code];
+  const firstActor = liveTimedRoom.currentPlayerId;
+  assert.ok(liveTimedRoom.decisionDeadlineAt > Date.now());
+  liveTimedRoom.decisionDeadlineAt = Date.now() + 40;
+  await post('chat', { sessionToken: timedHost.sessionToken, text: '聊天不能重置倒计时' });
+  await new Promise((resolve) => setTimeout(resolve, 180));
+  assert.notEqual(liveTimedRoom.currentPlayerId, firstActor);
+  assert.ok(liveTimedRoom.logs.some((entry) => /决策超时，系统已随机代为行动/.test(entry.text)));
+  await post('rooms/leave', { sessionToken: timedHost.sessionToken });
   await reader.cancel();
 });

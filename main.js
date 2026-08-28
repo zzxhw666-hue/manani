@@ -146,7 +146,7 @@
     busy = true;
     setLobbySubmitting(true);
     try {
-      var result = await API.createRoom(document.getElementById('room-name').value.trim(), Number(document.getElementById('room-max').value));
+      var result = await API.createRoom(document.getElementById('room-name').value.trim(), Number(document.getElementById('room-max').value), Number(document.getElementById('decision-seconds').value));
       room = result.room; created = true; document.getElementById('room-code').value = result.code; UI.toast('房间已创建：' + result.code, true);
     } catch (error) { UI.toast(error.message, false); }
     finally { busy = false; setLobbySubmitting(false); }

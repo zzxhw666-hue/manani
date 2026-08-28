@@ -9,6 +9,7 @@ window.MANILA_UI = (function () {
   var titleFlashTimer = null;
   var titleFlashStopTimer = null;
   var baseTitle = document.title;
+  var decisionClockTimer = null;
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -22,6 +23,8 @@ window.MANILA_UI = (function () {
       document.getElementById('screen-' + screen).classList.toggle('hidden', screen !== name);
     });
     if (name !== 'game') {
+      clearInterval(decisionClockTimer);
+      decisionClockTimer = null;
       eventQueue = [];
       var eventRoot = document.getElementById('event-root');
       if (eventRoot) eventRoot.innerHTML = '';
@@ -78,6 +81,22 @@ window.MANILA_UI = (function () {
   document.addEventListener('visibilitychange', function () { if (!document.hidden) stopTitleFlash(); });
   window.addEventListener('focus', stopTitleFlash);
 
+  function startDecisionClock(room) {
+    clearInterval(decisionClockTimer);
+    decisionClockTimer = null;
+    var clock = document.getElementById('decision-clock');
+    if (!clock) return;
+    function update() {
+      var deadline = Number(room.decisionDeadlineAt) || 0;
+      var remaining = deadline ? Math.max(0, Math.ceil((deadline - Date.now()) / 1000)) : null;
+      clock.querySelector('strong').textContent = remaining == null ? '—' : remaining;
+      clock.classList.toggle('urgent', remaining != null && remaining <= 5);
+      clock.classList.toggle('expired', remaining === 0);
+    }
+    update();
+    decisionClockTimer = setInterval(update, 250);
+  }
+
   function modal(title, body, onConfirm, confirmLabel) {
     var root = document.getElementById('modal-root');
     var mask = document.createElement('div');
@@ -123,14 +142,14 @@ window.MANILA_UI = (function () {
     document.getElementById('lobby-me').textContent = '商人 · ' + me.nickname;
     document.getElementById('logout').classList.toggle('hidden', Boolean(room));
     var inRoom = Boolean(room);
-    ['room-name', 'room-max', 'room-code'].forEach(function (id) { document.getElementById(id).disabled = inRoom; });
+    ['room-name', 'room-max', 'decision-seconds', 'room-code'].forEach(function (id) { document.getElementById(id).disabled = inRoom; });
     document.getElementById('create-room').disabled = inRoom;
     document.getElementById('create-room').textContent = inRoom ? '已在房间中' : '创建房间';
     document.getElementById('join-room').disabled = inRoom;
     document.getElementById('room-create-note').classList.toggle('hidden', !inRoom);
     var list = document.getElementById('room-list');
     list.innerHTML = rooms.length ? rooms.map(function (item) {
-      return '<article class="room-row"><div><strong>' + esc(item.name) + '</strong><span class="room-code">' + esc(item.code) + '</span><small>房主 ' + esc(item.host) + ' · ' + item.count + '/' + item.maxPlayers + ' 人</small></div><button class="btn secondary small" data-join="' + esc(item.code) + '" type="button" ' + (inRoom ? 'disabled' : '') + '>加入</button></article>';
+      return '<article class="room-row"><div><strong>' + esc(item.name) + '</strong><span class="room-code">' + esc(item.code) + '</span><small>房主 ' + esc(item.host) + ' · ' + item.count + '/' + item.maxPlayers + ' 人 · ' + Number(item.decisionSeconds || 20) + ' 秒决策</small></div><button class="btn secondary small" data-join="' + esc(item.code) + '" type="button" ' + (inRoom ? 'disabled' : '') + '>加入</button></article>';
     }).join('') : '<div class="empty-state"><span>⚓</span><p>港口暂时没有公开房间</p></div>';
     list.querySelectorAll('[data-join]').forEach(function (button) { button.onclick = function () { handlers.join(button.dataset.join); }; });
 
@@ -141,7 +160,7 @@ window.MANILA_UI = (function () {
       return '<div class="waiting-player ' + (player.isBot ? 'bot' : '') + '"><span class="seat-no">' + String(index + 1).padStart(2, '0') + '</span><span class="player-dot" style="--player:' + player.color + '"></span><strong>' + esc(player.nickname) + '</strong>' + (player.id === room.hostId ? '<em>房主</em>' : '') + (player.isBot ? '<em class="bot-tag">人机</em>' + (room.hostId === me.id ? '<button class="remove-bot" data-remove-bot="' + esc(player.id) + '" type="button" title="移除人机">×</button>' : '') : '') + '</div>';
     }).join('') + Array.from({ length: Math.max(0, room.maxPlayers - room.players.length) }, function (_, index) {
       return '<div class="waiting-player open"><span class="seat-no">' + String(room.players.length + index + 1).padStart(2, '0') + '</span><span class="player-dot"></span><span>等待商人加入</span></div>';
-    }).join('') + '</div><p class="lobby-note">不足 3 人时，房主可用人机补位。3 人局每人使用 4 名帮手。</p><div class="panel-actions">' + (room.hostId === me.id ? (room.players.length < room.maxPlayers ? '<button class="btn secondary" data-add-bot type="button">+ 添加人机</button>' : '') + '<button class="btn primary" data-start type="button" ' + (room.players.length < 3 ? 'disabled' : '') + '>开始航程</button>' : '<span class="waiting-copy">等待房主开局…</span>') + '<button class="btn danger" data-leave type="button">退出并解散</button></div>';
+    }).join('') + '</div><p class="lobby-note">每次决策限时 <b>' + Number(room.decisionSeconds || 20) + ' 秒</b>；超时由系统随机执行合法动作。人数不足时，房主可用人机补位。</p><div class="panel-actions">' + (room.hostId === me.id ? (room.players.length < room.maxPlayers ? '<button class="btn secondary" data-add-bot type="button">+ 添加人机</button>' : '') + '<button class="btn primary" data-start type="button" ' + (room.players.length < 3 ? 'disabled' : '') + '>开始航程</button>' : '<span class="waiting-copy">等待房主开局…</span>') + '<button class="btn danger" data-leave type="button">退出并解散</button></div>';
     var copy = panel.querySelector('[data-copy]');
     copy.onclick = function () { navigator.clipboard.writeText(room.code).then(function () { toast('房间码已复制', true); }); };
     var start = panel.querySelector('[data-start]');
@@ -154,9 +173,10 @@ window.MANILA_UI = (function () {
 
   function renderHeader(room, me, handlers) {
     var header = document.getElementById('game-header');
-    header.innerHTML = '<div class="game-brand"><span class="top-kicker">THE MERCHANTS OF</span><strong>马尼拉</strong></div><div class="header-divider"></div><div class="voyage-meta"><span>航程</span><strong>' + room.round + '</strong></div><div class="phase-pill"><i></i>' + esc(D.phaseNames[room.phase] || room.phase) + '</div><div class="harbor-chip"><span>港务长</span><b>' + esc(nickname(room, room.harborMasterId)) + '</b></div><div class="header-spacer"></div><span class="code-chip">房间 ' + esc(room.code) + '</span><button class="btn ghost small" data-rules type="button">规则</button><button class="btn danger small" data-leave type="button">退出房间</button>';
+    header.innerHTML = '<div class="game-brand"><span class="top-kicker">THE MERCHANTS OF</span><strong>马尼拉</strong></div><div class="header-divider"></div><div class="voyage-meta"><span>航程</span><strong>' + room.round + '</strong></div><div class="phase-pill"><i></i>' + esc(D.phaseNames[room.phase] || room.phase) + '</div><div id="decision-clock" class="decision-clock"><span>决策</span><strong>—</strong><small>s</small></div><div class="harbor-chip"><span>港务长</span><b>' + esc(nickname(room, room.harborMasterId)) + '</b></div><div class="header-spacer"></div><span class="code-chip">房间 ' + esc(room.code) + '</span><button class="btn ghost small" data-rules type="button">规则</button><button class="btn danger small" data-leave type="button">退出房间</button>';
     header.querySelector('[data-rules]').onclick = function () { showRules(); };
     header.querySelector('[data-leave]').onclick = function () { confirmDisband(room, handlers); };
+    startDecisionClock(room);
   }
 
   function marketHtml(room) {

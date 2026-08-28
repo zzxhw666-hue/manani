@@ -9,6 +9,7 @@ const {
   removeBot,
   dispatch,
   runBotTurn,
+  runTimeoutTurn,
   MARKET_TRACK,
 } = require('../lib/game');
 
@@ -85,6 +86,26 @@ test('房主可手动增删人机，人机会自动完成竞拍、布船与自�
   assert.equal(room.phase, 'placement');
   assert.equal(room.currentPlayerId, 'p1');
   assert.equal(room.boats.length, 3);
+});
+
+test('决策超时后系统随机执行合法动作，并能连续推进到下一航程', () => {
+  const room = createRoom({ code: 'TIME23', name: '限时决策局', maxPlayers: 3, decisionSeconds: 10, host: { id: 'p1', nickname: '甲商人' } });
+  addPlayer(room, { id: 'p2', nickname: '乙商人' });
+  addPlayer(room, { id: 'p3', nickname: '丙商人' });
+  dispatch(room, 'p1', 'start-game', {}, constant(0.42));
+  assert.equal(room.decisionSeconds, 10);
+
+  let steps = 0;
+  while (room.round < 2 && steps < 100) {
+    room.lockedUntil = 0;
+    const result = runTimeoutTurn(room, constant(0));
+    assert.equal(result.acted, true, `超时动作应能处理阶段 ${room.phase}`);
+    steps += 1;
+  }
+
+  assert.equal(room.round, 2);
+  assert.equal(room.phase, 'auction');
+  assert.ok(room.logs.some((entry) => /决策超时，系统已随机代为行动/.test(entry.text)));
 });
 
 test('港务长依次移船决定同轮抵港的 A/B/C 停靠顺序，抵港货物全部涨价', () => {

@@ -10,6 +10,7 @@ const {
   dispatch,
   publicRoom,
   runBotTurn,
+  runTimeoutTurn,
 } = require('./lib/game');
 
 const PORT = Number(process.env.PORT || 4173);
@@ -23,6 +24,7 @@ const STATE_FILE = path.join(DATA_DIR, 'state.json');
 // that player. This avoids repeatedly downloading the whole table on a timer.
 const eventClients = new Set();
 const botTimers = new Map();
+const decisionTimers = new Map();
 
 let state = { sessions: {}, rooms: {} };
 try {
@@ -48,6 +50,83 @@ function notifyClients(scope) {
     try { client.res.write(payload); }
     catch (_) { eventClients.delete(client); }
   }
+}
+
+function decisionStateKey(room) {
+  if (!room || room.status !== 'playing' || !room.currentPlayerId) return null;
+  let detail = '';
+  switch (room.phase) {
+    case 'auction': detail = `${room.auction?.highBid || 0}:${room.auction?.leaderId || ''}:${(room.auction?.passedIds || []).join(',')}`; break;
+    case 'harbor_setup': detail = String(room.round); break;
+    case 'placement': detail = `${room.placementRound}:${(room.placementPending || []).join(',')}`; break;
+    case 'dice': detail = String(room.movementRound); break;
+    case 'move': detail = `${room.movementRound}:${(room.pendingMoves || []).join(',')}`; break;
+    case 'pirate_board': detail = (room.pirateBoardQueue || []).map((token) => token.id).join(','); break;
+    case 'pilot': detail = (room.pilotQueue || []).map((job) => `${job.kind}:${job.token.id}`).join(','); break;
+    case 'pirate_destination': detail = (room.plunderQueue || []).join(','); break;
+    case 'settlement_review': detail = String(room.settlement?.round || room.round); break;
+    default: return null;
+  }
+  return `${room.phase}:${room.currentPlayerId}:${detail}`;
+}
+
+function syncDecisionClock(room) {
+  const seconds = [10, 20, 30].includes(Number(room?.decisionSeconds)) ? Number(room.decisionSeconds) : 20;
+  if (room) room.decisionSeconds = seconds;
+  const key = decisionStateKey(room);
+  if (!key) {
+    if (room) {
+      room.decisionKey = null;
+      room.decisionDeadlineAt = null;
+    }
+    return null;
+  }
+  const now = Date.now();
+  const blockedUntil = Math.max(Number(room.lockedUntil) || 0, Number(room.settlement?.readyAt) || 0);
+  const actionableAt = Math.max(now, blockedUntil);
+  if (room.decisionKey !== key || !Number(room.decisionDeadlineAt)) {
+    room.decisionKey = key;
+    room.decisionDeadlineAt = actionableAt + seconds * 1000;
+  } else if (blockedUntil > now && room.decisionDeadlineAt <= blockedUntil) {
+    room.decisionDeadlineAt = blockedUntil + seconds * 1000;
+  }
+  return key;
+}
+
+function scheduleDecision(roomCode) {
+  const previous = decisionTimers.get(roomCode);
+  if (previous) clearTimeout(previous);
+  decisionTimers.delete(roomCode);
+  const room = state.rooms[roomCode];
+  const key = syncDecisionClock(room);
+  if (!key || !room?.decisionDeadlineAt) return;
+  const scheduledDeadline = Number(room.decisionDeadlineAt);
+  const delay = Math.max(20, scheduledDeadline - Date.now() + 30);
+  const timer = setTimeout(() => {
+    decisionTimers.delete(roomCode);
+    const liveRoom = state.rooms[roomCode];
+    if (!liveRoom) return;
+    const liveKey = decisionStateKey(liveRoom);
+    if (liveKey !== key || Number(liveRoom.decisionDeadlineAt) !== scheduledDeadline) {
+      syncDecisionClock(liveRoom);
+      scheduleDecision(roomCode);
+      return;
+    }
+    try {
+      const result = runTimeoutTurn(liveRoom);
+      if (result.acted) changed(roomCode);
+      else if (result.wait > 0) {
+        liveRoom.decisionDeadlineAt = Date.now() + result.wait + liveRoom.decisionSeconds * 1000;
+        scheduleDecision(roomCode);
+      }
+    } catch (error) {
+      console.error(`超时随机决策失败 [${roomCode}]:`, error.message);
+      liveRoom.decisionDeadlineAt = Date.now() + 1000;
+      scheduleDecision(roomCode);
+    }
+  }, delay);
+  timer.unref?.();
+  decisionTimers.set(roomCode, timer);
 }
 
 function scheduleBot(roomCode, requestedDelay) {
@@ -78,9 +157,13 @@ function scheduleBot(roomCode, requestedDelay) {
 }
 
 function changed(scope) {
+  if (scope && state.rooms[scope]) syncDecisionClock(state.rooms[scope]);
   saveSoon();
   notifyClients(scope);
-  if (scope) scheduleBot(scope);
+  if (scope) {
+    scheduleBot(scope);
+    scheduleDecision(scope);
+  }
 }
 
 function dissolveRoom(room, leavingSession) {
@@ -88,6 +171,9 @@ function dissolveRoom(room, leavingSession) {
   const timer = botTimers.get(room.code);
   if (timer) clearTimeout(timer);
   botTimers.delete(room.code);
+  const decisionTimer = decisionTimers.get(room.code);
+  if (decisionTimer) clearTimeout(decisionTimer);
+  decisionTimers.delete(room.code);
   delete state.rooms[room.code];
   for (const session of Object.values(state.sessions)) {
     if (session.roomCode !== room.code) continue;
@@ -193,7 +279,7 @@ async function api(req, res, pathname) {
   if (pathname === '/api/rooms/list') {
     const rooms = Object.values(state.rooms)
       .filter((room) => room.status === 'waiting')
-      .map((room) => ({ code: room.code, name: room.name, count: room.players.length, maxPlayers: room.maxPlayers, host: room.players.find((p) => p.id === room.hostId)?.nickname || '—' }))
+      .map((room) => ({ code: room.code, name: room.name, count: room.players.length, maxPlayers: room.maxPlayers, decisionSeconds: room.decisionSeconds || 20, host: room.players.find((p) => p.id === room.hostId)?.nickname || '—' }))
       .sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
     return json(res, 200, { success: true, rooms });
   }
@@ -209,6 +295,7 @@ async function api(req, res, pathname) {
       code,
       name,
       maxPlayers: Number(body.maxPlayers),
+      decisionSeconds: Number(body.decisionSeconds),
       host: { id: session.playerId, nickname: session.nickname },
     });
     state.rooms[code] = room;
@@ -360,7 +447,11 @@ if (require.main === module) {
 }
 
 server.on('listening', () => {
-  for (const room of Object.values(state.rooms)) scheduleBot(room.code);
+  for (const room of Object.values(state.rooms)) {
+    syncDecisionClock(room);
+    scheduleBot(room.code);
+    scheduleDecision(room.code);
+  }
 });
 
 module.exports = { server, state };
