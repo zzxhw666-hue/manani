@@ -117,7 +117,7 @@
       var result = await API.joinRoom(String(code || '').trim().toUpperCase());
       room = result.room;
       joined = true;
-      UI.toast('已加入航运局', true);
+      UI.toast('已加入游戏房间', true);
     } catch (error) { UI.toast(error.message, false); }
     finally { busy = false; setLobbySubmitting(false); }
     if (joined) await refresh();
@@ -160,6 +160,15 @@
     max.innerHTML = event.target.value === 'splendor'
       ? '<option value="2">2 人</option><option value="3">3 人</option><option value="4" selected>4 人</option>'
       : '<option value="3">3 人</option><option value="4" selected>4 人</option><option value="5">5 人</option>';
+  });
+  document.querySelectorAll('[data-auth-mode]').forEach(function (poster) {
+    poster.addEventListener('click', function () {
+      document.querySelectorAll('[data-auth-mode]').forEach(function (item) { item.classList.toggle('active', item === poster); });
+      var mode = document.getElementById('game-mode');
+      mode.value = poster.dataset.authMode;
+      mode.dispatchEvent(new Event('change'));
+      document.getElementById('nickname').focus();
+    });
   });
   document.getElementById('logout').addEventListener('click', function () { stopUpdates(); API.logout(); room = null; observeTurn(null); UI.show('auth'); });
 

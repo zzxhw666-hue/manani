@@ -3,44 +3,78 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#102b29">
-  <title>马尼拉 · 联机桌游</title>
+  <meta name="theme-color" content="#171723">
+  <title>同桌 · 联机桌游馆</title>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div class="noise"></div>
   <main id="app">
     <section id="screen-auth" class="screen auth-screen">
-      <div class="auth-illustration" aria-hidden="true">
-        <div class="sun"></div>
-        <div class="sail sail-one">⛵</div>
-        <div class="sail sail-two">⛵</div>
-        <div class="water-line"></div>
+      <header class="home-nav">
+        <a class="home-brand" href="#" aria-label="同桌首页">
+          <span class="brand-mark"><i></i><i></i><i></i><i></i></span>
+          <span><b>同桌</b><small>TABLETOP CLUB</small></span>
+        </a>
+        <div class="home-status"><i></i> 两款桌游现已开放</div>
+      </header>
+
+      <div class="home-layout">
+        <div class="home-showcase">
+          <div class="home-copy">
+            <span class="home-eyebrow">ROOM CODE · REAL-TIME · WITH FRIENDS</span>
+            <h1>好戏，<br><em>同桌</em>发生。</h1>
+            <p>不用下载，不必读完厚厚的规则书。叫上朋友，用一个房间码，随时开始一场真正有来有往的桌上博弈。</p>
+          </div>
+
+          <div class="game-showcase" aria-label="当前开放的桌游">
+            <button class="game-poster manila-poster active" data-auth-mode="manila" type="button">
+              <span class="poster-art" aria-hidden="true">
+                <i class="poster-sun"></i><i class="poster-ship ship-a">▲</i><i class="poster-ship ship-b">▲</i><i class="poster-wave"></i>
+              </span>
+              <span class="poster-content"><small>01 · 航运博弈</small><strong>马尼拉</strong><em>竞拍 · 押注 · 风险</em></span>
+              <span class="poster-meta"><b>3–5 人</b><i>立即开局 →</i></span>
+            </button>
+            <button class="game-poster splendor-poster" data-auth-mode="splendor" type="button">
+              <span class="poster-art gem-art" aria-hidden="true"><i>◆</i><i>◆</i><i>◆</i><i>◆</i></span>
+              <span class="poster-content"><small>02 · 引擎构筑</small><strong>璀璨宝石</strong><em>经营 · 预留 · 贵族</em></span>
+              <span class="poster-meta"><b>2–4 人</b><i>立即开局 →</i></span>
+            </button>
+            <article class="game-poster next-poster" aria-label="更多游戏正在准备">
+              <span class="next-symbol">＋</span>
+              <span class="poster-content"><small>NEXT TABLE</small><strong>下一桌</strong><em>更多游戏正在准备</em></span>
+              <span class="poster-meta"><b>敬请期待</b></span>
+            </article>
+          </div>
+        </div>
+
+        <aside class="home-entry">
+          <div class="entry-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
+          <span class="entry-no">YOUR SEAT / 01</span>
+          <h2>先落个座</h2>
+          <p>输入本桌显示的名字，进入大厅后即可创建房间或凭房间码加入朋友。</p>
+          <form id="auth-form">
+            <label for="nickname">玩家昵称</label>
+            <div class="nickname-field"><span>♟</span><input id="nickname" maxlength="16" minlength="2" autocomplete="nickname" placeholder="2–16 个字符" required></div>
+            <button class="home-enter" type="submit"><span>进入桌游大厅</span><i>↗</i></button>
+          </form>
+          <div class="entry-features"><span>● 无需下载</span><span>● 实时联机</span><span>● 支持人机</span></div>
+        </aside>
       </div>
-      <div class="auth-card paper-card">
-        <div class="eyebrow">THE MERCHANTS OF</div>
-        <h1>马尼拉</h1>
-        <p class="title-en">MANILA</p>
-        <p class="lead">竞拍港务长，装载货船，在骰点与人心之间押上你的比索。</p>
-        <form id="auth-form">
-          <label for="nickname">你的商人名号</label>
-          <input id="nickname" maxlength="16" minlength="2" autocomplete="nickname" placeholder="2–16 个字符" required>
-          <button class="btn primary block" type="submit">进入马尼拉港</button>
-        </form>
-        <p class="fine-print">3–5 人 · 房间码联机 · 原版 2005 标准流程</p>
-      </div>
+
+      <footer class="home-footer"><span>PLAY TOGETHER, STAY TOGETHER.</span><span>房间制联机 · 自动托管 · 断线恢复</span></footer>
     </section>
 
     <section id="screen-lobby" class="screen hidden">
       <header class="topbar">
-        <div><span class="top-kicker">PORT AUTHORITY</span><h1>马尼拉航运局</h1></div>
+        <div class="lobby-brand"><span class="top-kicker">TABLETOP CLUB · ONLINE</span><h1>同桌 · 联机桌游馆</h1></div>
         <div class="identity"><span id="lobby-me"></span><button id="logout" class="btn ghost small" type="button">更换身份</button></div>
       </header>
       <div class="lobby-grid">
         <section class="paper-card panel create-panel">
           <div class="panel-number">01</div>
-          <h2>建立游戏房间</h2>
-          <label for="game-mode">游戏模式</label>
+          <h2>发起一桌</h2>
+          <label for="game-mode">选择桌游</label>
           <select id="game-mode"><option value="manila">马尼拉 · 航运竞逐</option><option value="splendor">璀璨宝石 · 引擎构筑</option></select>
           <label for="room-name">房间名称</label>
           <input id="room-name" maxlength="24" placeholder="例如：周五海运商会">
@@ -51,11 +85,11 @@
           <button id="create-room" class="btn primary block" type="button">创建房间</button>
           <p id="room-create-note" class="create-lock-note hidden">你已在房间中，请先退出当前房间后再创建或加入其他房间。</p>
           <div class="divider"><span>或</span></div>
-          <label for="room-code">凭房间码登船</label>
+          <label for="room-code">凭房间码加入</label>
           <div class="inline-form"><input id="room-code" maxlength="6" placeholder="ABC234"><button id="join-room" class="btn secondary" type="button">加入</button></div>
         </section>
         <section class="paper-card panel room-list-panel">
-          <div class="panel-title-row"><div><span class="panel-number">02</span><h2>公开房间</h2></div><button id="refresh-lobby" class="btn ghost small" type="button">刷新</button></div>
+          <div class="panel-title-row"><div><span class="panel-number">02</span><h2>正在开桌</h2></div><button id="refresh-lobby" class="btn ghost small" type="button">刷新</button></div>
           <div id="room-list" class="room-list"></div>
         </section>
         <section id="current-room" class="paper-card panel current-panel hidden"></section>

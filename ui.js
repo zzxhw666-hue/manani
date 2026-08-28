@@ -102,7 +102,7 @@ window.MANILA_UI = (function () {
     var root = document.getElementById('modal-root');
     var mask = document.createElement('div');
     mask.className = 'modal-mask';
-    mask.innerHTML = '<div class="modal paper-card"><button class="modal-x" type="button" aria-label="关闭">×</button><span class="top-kicker">MANILA PORT</span><h2>' + esc(title) + '</h2><div class="modal-body">' + body + '</div><div class="modal-actions"><button class="btn ghost modal-cancel" type="button">取消</button>' + (onConfirm ? '<button class="btn primary modal-confirm" type="button">' + esc(confirmLabel || '确认') + '</button>' : '') + '</div></div>';
+    mask.innerHTML = '<div class="modal paper-card"><button class="modal-x" type="button" aria-label="关闭">×</button><span class="top-kicker">TABLETOP CLUB</span><h2>' + esc(title) + '</h2><div class="modal-body">' + body + '</div><div class="modal-actions"><button class="btn ghost modal-cancel" type="button">取消</button>' + (onConfirm ? '<button class="btn primary modal-confirm" type="button">' + esc(confirmLabel || '确认') + '</button>' : '') + '</div></div>';
     function close() { mask.remove(); }
     mask.querySelector('.modal-x').onclick = close;
     mask.querySelector('.modal-cancel').onclick = close;
@@ -140,7 +140,7 @@ window.MANILA_UI = (function () {
 
   function renderLobby(me, rooms, room, handlers) {
     show('lobby');
-    document.getElementById('lobby-me').textContent = '商人 · ' + me.nickname;
+    document.getElementById('lobby-me').textContent = '玩家 · ' + me.nickname;
     document.getElementById('logout').classList.toggle('hidden', Boolean(room));
     var inRoom = Boolean(room);
     ['game-mode', 'room-name', 'room-max', 'decision-seconds', 'room-code'].forEach(function (id) { document.getElementById(id).disabled = inRoom; });
@@ -152,7 +152,7 @@ window.MANILA_UI = (function () {
     list.innerHTML = rooms.length ? rooms.map(function (item) {
       var modeName = item.gameMode === 'splendor' ? '璀璨宝石' : '马尼拉';
       return '<article class="room-row"><div><strong>' + esc(item.name) + '</strong><span class="room-code">' + esc(item.code) + '</span><small><b class="mode-badge ' + esc(item.gameMode || 'manila') + '">' + modeName + '</b> · 房主 ' + esc(item.host) + ' · ' + item.count + '/' + item.maxPlayers + ' 人 · ' + Number(item.decisionSeconds || 20) + ' 秒决策</small></div><button class="btn secondary small" data-join="' + esc(item.code) + '" type="button" ' + (inRoom ? 'disabled' : '') + '>加入</button></article>';
-    }).join('') : '<div class="empty-state"><span>⚓</span><p>港口暂时没有公开房间</p></div>';
+    }).join('') : '<div class="empty-state"><span>♟</span><p>暂时还没有公开房间，来发起第一桌吧</p></div>';
     list.querySelectorAll('[data-join]').forEach(function (button) { button.onclick = function () { handlers.join(button.dataset.join); }; });
 
     var panel = document.getElementById('current-room');
@@ -163,7 +163,7 @@ window.MANILA_UI = (function () {
     panel.innerHTML = '<div class="panel-number">03</div><div class="room-ticket"><span>你的房间码</span><strong>' + esc(room.code) + '</strong><button class="btn ghost small" data-copy type="button">复制</button></div><p class="selected-mode">当前模式 · <b>' + (isSplendor ? '璀璨宝石' : '马尼拉') + '</b></p><h2>' + esc(room.name) + '</h2><div class="waiting-players">' + room.players.map(function (player, index) {
       return '<div class="waiting-player ' + (player.isBot ? 'bot' : '') + '"><span class="seat-no">' + String(index + 1).padStart(2, '0') + '</span><span class="player-dot" style="--player:' + player.color + '"></span><strong>' + esc(player.nickname) + '</strong>' + (player.id === room.hostId ? '<em>房主</em>' : '') + (player.isBot ? '<em class="bot-tag">人机</em>' + (room.hostId === me.id ? '<button class="remove-bot" data-remove-bot="' + esc(player.id) + '" type="button" title="移除人机">×</button>' : '') : '') + '</div>';
     }).join('') + Array.from({ length: Math.max(0, room.maxPlayers - room.players.length) }, function (_, index) {
-      return '<div class="waiting-player open"><span class="seat-no">' + String(room.players.length + index + 1).padStart(2, '0') + '</span><span class="player-dot"></span><span>等待商人加入</span></div>';
+      return '<div class="waiting-player open"><span class="seat-no">' + String(room.players.length + index + 1).padStart(2, '0') + '</span><span class="player-dot"></span><span>等待玩家加入</span></div>';
     }).join('') + '</div><p class="lobby-note">每次决策限时 <b>' + Number(room.decisionSeconds || 20) + ' 秒</b>；超时由系统自动执行合法动作。人数不足时，房主可用人机补位。</p><div class="panel-actions">' + (room.hostId === me.id ? (room.players.length < room.maxPlayers ? '<button class="btn secondary" data-add-bot type="button">+ 添加人机</button>' : '') + '<button class="btn primary" data-start type="button" ' + (room.players.length < minimumPlayers ? 'disabled' : '') + '>' + (isSplendor ? '开始鉴宝' : '开始航程') + '</button>' : '<span class="waiting-copy">等待房主开局…</span>') + '<button class="btn danger" data-leave type="button">退出并解散</button></div>';
     var copy = panel.querySelector('[data-copy]');
     copy.onclick = function () { navigator.clipboard.writeText(room.code).then(function () { toast('房间码已复制', true); }); };
