@@ -283,3 +283,31 @@ test('抵押贷款得 12₱、赎回花 15₱，且股票身份仅对本人可�
   assert.equal(view.players[0].shares, undefined);
   assert.ok(view.players[1].shares);
 });
+
+test('竞拍领先者不能通过赎回削弱支付额度，旧异常报价会自动废标重拍', () => {
+  const room = makeRoom(3);
+  const player = room.players[0];
+  const ware = Object.keys(player.shares).find((id) => player.shares[id] > 0);
+  dispatch(room, 'p1', 'mortgage', { ware });
+  dispatch(room, 'p1', 'bid', { amount: 54 });
+  assert.throws(() => dispatch(room, 'p1', 'redeem', { ware }), /可支付额度不足/);
+  dispatch(room, 'p2', 'pass-auction');
+  dispatch(room, 'p3', 'pass-auction');
+  assert.equal(room.phase, 'harbor_setup');
+  assert.equal(room.harborMasterId, 'p1');
+  assert.equal(player.cash, 0);
+
+  const legacyRoom = makeRoom(3);
+  legacyRoom.auction.highBid = 999;
+  legacyRoom.auction.leaderId = 'p1';
+  legacyRoom.auction.passedIds = ['p2', 'p3'];
+  legacyRoom.auction.currentPlayerId = 'p1';
+  legacyRoom.currentPlayerId = 'p1';
+  dispatch(legacyRoom, 'p1', 'pass-auction');
+  assert.equal(legacyRoom.phase, 'auction');
+  assert.equal(legacyRoom.auction.highBid, 0);
+  assert.equal(legacyRoom.auction.leaderId, null);
+  assert.deepEqual(legacyRoom.auction.passedIds, ['p1']);
+  assert.equal(legacyRoom.currentPlayerId, 'p2');
+  assert.match(legacyRoom.logs.at(-1).text, /报价作废/);
+});

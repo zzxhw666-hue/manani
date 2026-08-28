@@ -259,14 +259,21 @@ window.MANILA_UI = (function () {
   }
 
   function assetsHtml(room, me) {
+    var reservedBid = room.phase === 'auction' && room.auction && room.auction.leaderId === me.id ? Number(room.auction.highBid) : 0;
+    var freeShareCount = D.wareIds.reduce(function (sum, ware) {
+      return sum + (me.shares ? me.shares[ware] : 0) - (me.mortgaged ? me.mortgaged[ware] : 0);
+    }, 0);
+    var fundsAfterRedeem = me.cash - 15 + (freeShareCount + 1) * 12;
     var shareRows = D.wareIds.map(function (ware) {
       var count = me.shares ? me.shares[ware] : 0;
       var mortgaged = me.mortgaged ? me.mortgaged[ware] : 0;
       var free = count - mortgaged;
-      return '<div class="share-row" style="--ware:' + D.wares[ware].color + '"><span class="share-gem">' + D.wares[ware].icon + '</span><div><strong>' + D.wares[ware].name + '</strong><small>' + count + ' 股 · 市值 ' + (count * D.marketTrack[room.market[ware]]) + '₱' + (mortgaged ? ' · 抵押 ' + mortgaged : '') + '</small></div><div class="share-actions">' + (free > 0 && room.status === 'playing' && room.phase !== 'settlement_review' ? '<button data-mortgage="' + ware + '" title="抵押得 12₱">借</button>' : '') + (mortgaged > 0 && me.cash >= 15 && room.status === 'playing' && room.phase !== 'settlement_review' ? '<button data-redeem="' + ware + '" title="支付 15₱ 赎回">赎</button>' : '') + '</div></div>';
+      var canRedeem = !reservedBid || fundsAfterRedeem >= reservedBid;
+      return '<div class="share-row" style="--ware:' + D.wares[ware].color + '"><span class="share-gem">' + D.wares[ware].icon + '</span><div><strong>' + D.wares[ware].name + '</strong><small>' + count + ' 股 · 市值 ' + (count * D.marketTrack[room.market[ware]]) + '₱' + (mortgaged ? ' · 抵押 ' + mortgaged : '') + '</small></div><div class="share-actions">' + (free > 0 && room.status === 'playing' && room.phase !== 'settlement_review' ? '<button data-mortgage="' + ware + '" title="抵押得 12₱">借</button>' : '') + (mortgaged > 0 && me.cash >= 15 && room.status === 'playing' && room.phase !== 'settlement_review' && canRedeem ? '<button data-redeem="' + ware + '" title="支付 15₱ 赎回">赎</button>' : '') + '</div></div>';
     }).join('');
     var stockValue = D.wareIds.reduce(function (sum, ware) { return sum + (me.shares ? me.shares[ware] : 0) * D.marketTrack[room.market[ware]]; }, 0);
-    return '<section class="assets box"><div class="asset-head"><div><span>我的现金</span><strong>' + me.cash + '<small>₱</small></strong></div><div><span>股票市值</span><strong>' + stockValue + '<small>₱</small></strong></div><div><span>可用帮手</span><strong>' + me.pawnsAvailable + '<small>/' + me.pawnsTotal + '</small></strong></div></div><div class="share-list">' + shareRows + '</div><p class="loan-note">抵押 1 股获得 12₱；支付 15₱ 可赎回。</p></section>';
+    var loanNote = reservedBid ? '当前最高报价 ' + reservedBid + '₱ 已锁定融资额度，不能赎回使额度低于报价。' : '抵押 1 股获得 12₱；支付 15₱ 可赎回。';
+    return '<section class="assets box"><div class="asset-head"><div><span>我的现金</span><strong>' + me.cash + '<small>₱</small></strong></div><div><span>股票市值</span><strong>' + stockValue + '<small>₱</small></strong></div><div><span>可用帮手</span><strong>' + me.pawnsAvailable + '<small>/' + me.pawnsTotal + '</small></strong></div></div><div class="share-list">' + shareRows + '</div><p class="loan-note">' + loanNote + '</p></section>';
   }
 
   function playersHtml(room, me) {
