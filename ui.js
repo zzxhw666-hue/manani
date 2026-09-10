@@ -18,6 +18,7 @@ window.MANILA_UI = (function () {
   }
 
   function show(name) {
+    var changed = currentScreen !== name;
     currentScreen = name;
     ['auth', 'lobby', 'game'].forEach(function (screen) {
       document.getElementById('screen-' + screen).classList.toggle('hidden', screen !== name);
@@ -29,6 +30,7 @@ window.MANILA_UI = (function () {
       var eventRoot = document.getElementById('event-root');
       if (eventRoot) eventRoot.innerHTML = '';
     }
+    if (changed) window.scrollTo(0, 0);
   }
 
   function toast(message, ok) {
@@ -145,13 +147,14 @@ window.MANILA_UI = (function () {
     var inRoom = Boolean(room);
     ['game-mode', 'room-name', 'room-max', 'decision-seconds', 'room-code'].forEach(function (id) { document.getElementById(id).disabled = inRoom; });
     document.getElementById('create-room').disabled = inRoom;
-    document.getElementById('create-room').textContent = inRoom ? '已在房间中' : '创建房间';
+    document.getElementById('create-room').textContent = inRoom ? '已在房间中' : '创建并入座';
     document.getElementById('join-room').disabled = inRoom;
+    document.querySelectorAll('[data-lobby-mode]').forEach(function (tray) { tray.disabled = inRoom; });
     document.getElementById('room-create-note').classList.toggle('hidden', !inRoom);
     var list = document.getElementById('room-list');
     list.innerHTML = rooms.length ? rooms.map(function (item) {
       var modeName = item.gameMode === 'splendor' ? '璀璨宝石' : '马尼拉';
-      return '<article class="room-row"><div><strong>' + esc(item.name) + '</strong><span class="room-code">' + esc(item.code) + '</span><small><b class="mode-badge ' + esc(item.gameMode || 'manila') + '">' + modeName + '</b> · 房主 ' + esc(item.host) + ' · ' + item.count + '/' + item.maxPlayers + ' 人 · ' + Number(item.decisionSeconds || 20) + ' 秒决策</small></div><button class="btn secondary small" data-join="' + esc(item.code) + '" type="button" ' + (inRoom ? 'disabled' : '') + '>加入</button></article>';
+      return '<article class="room-row"><span class="room-game-icon">' + (item.gameMode === 'splendor' ? '◆' : '⛵') + '</span><div><strong>' + esc(item.name) + '</strong><span class="room-code">' + esc(item.code) + '</span><small><b class="mode-badge ' + esc(item.gameMode || 'manila') + '">' + modeName + '</b> · 房主 ' + esc(item.host) + ' · ' + item.count + '/' + item.maxPlayers + ' 人 · ' + Number(item.decisionSeconds || 20) + ' 秒决策</small></div><button data-join="' + esc(item.code) + '" type="button" ' + (inRoom ? 'disabled' : '') + '>加入</button></article>';
     }).join('') : '<div class="empty-state"><span>♟</span><p>暂时还没有公开房间，来发起第一桌吧</p></div>';
     list.querySelectorAll('[data-join]').forEach(function (button) { button.onclick = function () { handlers.join(button.dataset.join); }; });
 
@@ -177,7 +180,7 @@ window.MANILA_UI = (function () {
 
   function renderHeader(room, me, handlers) {
     var header = document.getElementById('game-header');
-    header.innerHTML = '<div class="game-brand"><span class="top-kicker">THE MERCHANTS OF</span><strong>马尼拉</strong></div><div class="header-divider"></div><div class="voyage-meta"><span>航程</span><strong>' + room.round + '</strong></div><div class="phase-pill"><i></i>' + esc(D.phaseNames[room.phase] || room.phase) + '</div><div id="decision-clock" class="decision-clock"><span>决策</span><strong>—</strong><small>s</small></div><div class="harbor-chip"><span>港务长</span><b>' + esc(nickname(room, room.harborMasterId)) + '</b></div><div class="header-spacer"></div><span class="code-chip">房间 ' + esc(room.code) + '</span><button class="btn ghost small" data-rules type="button">规则</button><button class="btn danger small" data-leave type="button">退出房间</button>';
+    header.innerHTML = '<div class="game-brand"><span class="top-kicker">TABLE CLUB · MANILA</span><strong>马尼拉</strong></div><div class="header-divider"></div><div class="voyage-meta"><span>航程</span><strong>' + room.round + '</strong></div><div class="phase-pill"><i></i>' + esc(D.phaseNames[room.phase] || room.phase) + '</div><div id="decision-clock" class="decision-clock"><span>决策</span><strong>—</strong><small>s</small></div><div class="harbor-chip"><span>港务长</span><b>' + esc(nickname(room, room.harborMasterId)) + '</b></div><div class="header-spacer"></div><span class="code-chip">房间 ' + esc(room.code) + '</span><button class="btn ghost small" data-rules type="button">规则</button><button class="btn danger small" data-leave type="button">退出房间</button>';
     header.querySelector('[data-rules]').onclick = function () { showRules(); };
     header.querySelector('[data-leave]').onclick = function () { confirmDisband(room, handlers); };
     startDecisionClock(room);
@@ -439,7 +442,7 @@ window.MANILA_UI = (function () {
     var self = room.players.find(function (player) { return player.id === me.id; }) || me;
     renderHeader(room, self, handlers);
     var root = document.getElementById('game-root');
-    root.innerHTML = settlementHtml(room, self) + scoreHtml(room) + '<div class="game-layout"><main class="game-main">' + marketHtml(room) + (room.boats.length ? boardHtml(room, self) : '') + '</main><aside class="game-side">' + currentActionHtml(room, self) + assetsHtml(room, self) + playersHtml(room, self) + logChatHtml(room) + '</aside></div>';
+    root.innerHTML = '<div class="manila-stage">' + settlementHtml(room, self) + scoreHtml(room) + '<div class="manila-opponents">' + playersHtml(room, self) + '</div><div class="manila-table-layout"><main class="manila-board-column">' + (room.boats.length ? boardHtml(room, self) : '<section class="box board"><div class="empty-state"><span>⛵</span><p>等待港务长布置本轮货船</p></div></section>') + '</main><aside class="manila-control-column">' + marketHtml(room) + currentActionHtml(room, self) + assetsHtml(room, self) + logChatHtml(room) + '</aside></div></div>';
     bindGame(root, room, self, handlers);
     syncRoomEvents(room);
   }

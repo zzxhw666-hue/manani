@@ -9,6 +9,17 @@
   var observedRoomCode = '';
   var observedTurnOwnerId = null;
 
+  function syncModeChoice(modeName) {
+    var mode = modeName || document.getElementById('game-mode').value;
+    document.querySelectorAll('[data-lobby-mode]').forEach(function (tray) {
+      tray.classList.toggle('active', tray.dataset.lobbyMode === mode);
+    });
+    var label = document.getElementById('selected-mode-label');
+    if (label) label.textContent = mode === 'splendor' ? '璀璨宝石' : '马尼拉';
+    var roomName = document.getElementById('room-name');
+    if (roomName) roomName.placeholder = mode === 'splendor' ? '周五珠宝局' : '周五好友局';
+  }
+
   function me() { return { id: API.playerId(), nickname: API.nickname() }; }
 
   function observeTurn(nextRoom) {
@@ -117,7 +128,7 @@
       var result = await API.joinRoom(String(code || '').trim().toUpperCase());
       room = result.room;
       joined = true;
-      UI.toast('已加入航运局', true);
+      UI.toast('已加入游戏房间', true);
     } catch (error) { UI.toast(error.message, false); }
     finally { busy = false; setLobbySubmitting(false); }
     if (joined) await refresh();
@@ -160,9 +171,19 @@
     max.innerHTML = event.target.value === 'splendor'
       ? '<option value="2">2 人</option><option value="3">3 人</option><option value="4" selected>4 人</option>'
       : '<option value="3">3 人</option><option value="4" selected>4 人</option><option value="5">5 人</option>';
+    syncModeChoice(event.target.value);
+  });
+  document.querySelectorAll('[data-lobby-mode]').forEach(function (tray) {
+    tray.addEventListener('click', function () {
+      var mode = document.getElementById('game-mode');
+      if (mode.disabled) return;
+      mode.value = tray.dataset.lobbyMode;
+      mode.dispatchEvent(new Event('change'));
+    });
   });
   document.getElementById('logout').addEventListener('click', function () { stopUpdates(); API.logout(); room = null; observeTurn(null); UI.show('auth'); });
 
+  syncModeChoice('manila');
   if (API.hasSession()) {
     document.getElementById('nickname').value = API.nickname();
     UI.show('lobby'); refresh(); startUpdates();

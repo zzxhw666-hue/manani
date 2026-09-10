@@ -4,96 +4,77 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#171723">
-  <title>同桌 · 联机桌游馆</title>
+  <title>同桌 · TABLE CLUB</title>
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/table-club.css">
 </head>
 <body>
   <div class="noise"></div>
   <main id="app">
     <section id="screen-auth" class="screen auth-screen">
-      <header class="home-nav">
-        <a class="home-brand" href="#" aria-label="同桌首页">
-          <span class="brand-mark"><i></i><i></i><i></i><i></i></span>
-          <span><b>同桌</b><small>TABLETOP CLUB</small></span>
-        </a>
-        <div class="home-status"><i></i> 两款桌游现已开放</div>
-      </header>
-
-      <div class="home-layout">
-        <div class="home-showcase">
-          <div class="home-copy">
-            <span class="home-eyebrow">ROOM CODE · REAL-TIME · WITH FRIENDS</span>
-            <h1>好戏，<br><em>同桌</em>发生。</h1>
-            <p>不用下载，不必读完厚厚的规则书。叫上朋友，用一个房间码，随时开始一场真正有来有往的桌上博弈。</p>
-          </div>
-
-          <div class="game-showcase" aria-label="当前开放的桌游">
-            <button class="game-poster manila-poster active" data-auth-mode="manila" type="button">
-              <span class="poster-art" aria-hidden="true">
-                <i class="poster-sun"></i><i class="poster-ship ship-a">▲</i><i class="poster-ship ship-b">▲</i><i class="poster-wave"></i>
-              </span>
-              <span class="poster-content"><small>01 · 航运博弈</small><strong>马尼拉</strong><em>竞拍 · 押注 · 风险</em></span>
-              <span class="poster-meta"><b>3–5 人</b><i>立即开局 →</i></span>
-            </button>
-            <button class="game-poster splendor-poster" data-auth-mode="splendor" type="button">
-              <span class="poster-art gem-art" aria-hidden="true"><i>◆</i><i>◆</i><i>◆</i><i>◆</i></span>
-              <span class="poster-content"><small>02 · 引擎构筑</small><strong>璀璨宝石</strong><em>经营 · 预留 · 贵族</em></span>
-              <span class="poster-meta"><b>2–4 人</b><i>立即开局 →</i></span>
-            </button>
-            <article class="game-poster next-poster" aria-label="更多游戏正在准备">
-              <span class="next-symbol">＋</span>
-              <span class="poster-content"><small>NEXT TABLE</small><strong>下一桌</strong><em>更多游戏正在准备</em></span>
-              <span class="poster-meta"><b>敬请期待</b></span>
-            </article>
-          </div>
-        </div>
-
-        <aside class="home-entry">
-          <div class="entry-orbit" aria-hidden="true"><i></i><i></i><i></i></div>
-          <span class="entry-no">YOUR SEAT / 01</span>
-          <h2>先落个座</h2>
-          <p>输入本桌显示的名字，进入大厅后即可创建房间或凭房间码加入朋友。</p>
-          <form id="auth-form">
-            <label for="nickname">玩家昵称</label>
-            <div class="nickname-field"><span>♟</span><input id="nickname" maxlength="16" minlength="2" autocomplete="nickname" placeholder="2–16 个字符" required></div>
-            <button class="home-enter" type="submit"><span>进入桌游大厅</span><i>↗</i></button>
-          </form>
-          <div class="entry-features"><span>● 无需下载</span><span>● 实时联机</span><span>● 支持人机</span></div>
-        </aside>
+      <div class="club-room-scene" aria-hidden="true">
+        <span class="scene-lamp"></span><span class="scene-plant"></span><span class="scene-chair"></span>
+        <span class="scene-box box-one"></span><span class="scene-box box-two"></span>
       </div>
-
-      <footer class="home-footer"><span>PLAY TOGETHER, STAY TOGETHER.</span><span>房间制联机 · 自动托管 · 断线恢复</span></footer>
+      <article class="welcome-plaque">
+        <div class="table-mark" aria-hidden="true"><i></i><b></b><i></i></div>
+        <h1>同桌</h1>
+        <div class="plaque-english">TABLE CLUB</div>
+        <p class="welcome-line">好游戏，让我们坐到一起</p>
+        <form id="auth-form" class="welcome-form">
+          <label for="nickname">你的昵称</label>
+          <input id="nickname" maxlength="16" minlength="2" autocomplete="nickname" placeholder="给自己取个名字" required>
+          <small>2–16 个字符</small>
+          <button class="seat-button" type="submit"><span>入座开局</span><i>→</i></button>
+        </form>
+        <div class="plaque-foot">发现桌游&nbsp;&nbsp;·&nbsp;&nbsp;创建房间&nbsp;&nbsp;·&nbsp;&nbsp;邀请好友</div>
+      </article>
+      <div class="table-props props-left" aria-hidden="true"><i></i><i></i><b>⚄</b></div>
+      <div class="table-props props-right" aria-hidden="true"><span></span><i></i><i></i></div>
+      <footer class="auth-scene-footer"><span><i></i> 服务已连接</span><span>今晚，一起玩</span></footer>
     </section>
 
-    <section id="screen-lobby" class="screen hidden">
-      <header class="topbar">
-        <div class="lobby-brand"><span class="top-kicker">TABLETOP CLUB · ONLINE</span><h1>同桌 · 联机桌游馆</h1></div>
+    <section id="screen-lobby" class="screen club-lobby-screen hidden">
+      <header class="club-lobby-nav">
+        <div class="club-wordmark"><span class="compass-mark" aria-hidden="true">✣</span><span><b>同桌</b><small>TABLE CLUB</small></span></div>
         <div class="identity"><span id="lobby-me"></span><button id="logout" class="btn ghost small" type="button">更换身份</button></div>
       </header>
-      <div class="lobby-grid">
-        <section class="paper-card panel create-panel">
-          <div class="panel-number">01</div>
-          <h2>发起一桌</h2>
-          <label for="game-mode">选择桌游</label>
-          <select id="game-mode"><option value="manila">马尼拉 · 航运竞逐</option><option value="splendor">璀璨宝石 · 引擎构筑</option></select>
-          <label for="room-name">房间名称</label>
-          <input id="room-name" maxlength="24" placeholder="例如：周五海运商会">
-          <label for="room-max">座位数量</label>
-          <select id="room-max"><option value="3">3 人</option><option value="4" selected>4 人</option><option value="5">5 人</option></select>
-          <label for="decision-seconds">每次决策最长时间</label>
-          <select id="decision-seconds"><option value="10">10 秒</option><option value="20" selected>20 秒</option><option value="30">30 秒</option></select>
-          <button id="create-room" class="btn primary block" type="button">创建房间</button>
-          <p id="room-create-note" class="create-lock-note hidden">你已在房间中，请先退出当前房间后再创建或加入其他房间。</p>
-          <div class="divider"><span>或</span></div>
-          <label for="room-code">凭房间码加入</label>
-          <div class="inline-form"><input id="room-code" maxlength="6" placeholder="ABC234"><button id="join-room" class="btn secondary" type="button">加入</button></div>
-        </section>
-        <section class="paper-card panel room-list-panel">
-          <div class="panel-title-row"><div><span class="panel-number">02</span><h2>正在开桌</h2></div><button id="refresh-lobby" class="btn ghost small" type="button">刷新</button></div>
+      <div class="club-lobby-layout">
+        <main class="club-lobby-main">
+          <div class="lobby-intro"><span>TONIGHT'S TABLE</span><h1>今晚，玩哪一局？</h1><p>选一款桌游，和朋友一起入座</p></div>
+          <div class="lobby-games" aria-label="选择桌游">
+            <button class="lobby-game-tray manila-tray active" data-lobby-mode="manila" type="button">
+              <span class="tray-scene manila-scene" aria-hidden="true"><i class="harbor harbor-a"></i><i class="harbor harbor-b"></i><b class="mini-ship ship-one">▲</b><b class="mini-ship ship-two">▲</b><b class="mini-ship ship-three">▲</b><em>⚄</em></span>
+              <span class="tray-caption"><span class="tray-icon">⛵</span><span><strong>马尼拉</strong><small>MANILA</small><em>航运 · 竞拍 · 策略</em></span><b>3–5 人</b></span>
+              <span class="tray-check">✓</span>
+            </button>
+            <button class="lobby-game-tray splendor-tray" data-lobby-mode="splendor" type="button">
+              <span class="tray-scene splendor-scene" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><b></b><b></b><b></b></span>
+              <span class="tray-caption"><span class="tray-icon">◆</span><span><strong>璀璨宝石</strong><small>SPLENDOR</small><em>宝石 · 收集 · 构筑</em></span><b>2–4 人</b></span>
+              <span class="tray-check">✓</span>
+            </button>
+          </div>
+          <section class="create-table-panel">
+            <div class="create-heading"><span class="door-icon">♙</span><h2>创建房间</h2><span>已选：<b id="selected-mode-label">马尼拉</b></span></div>
+            <select id="game-mode" class="visually-hidden-select" tabindex="-1"><option value="manila">马尼拉 · 航运竞逐</option><option value="splendor">璀璨宝石 · 引擎构筑</option></select>
+            <div class="create-fields">
+              <label for="room-name"><span>房间名称</span><input id="room-name" maxlength="24" placeholder="周五好友局"></label>
+              <label for="room-max"><span>人数</span><select id="room-max"><option value="3">3 人</option><option value="4" selected>4 人</option><option value="5">5 人</option></select></label>
+              <label for="decision-seconds"><span>决策时间</span><select id="decision-seconds"><option value="10">10 秒</option><option value="20" selected>20 秒</option><option value="30">30 秒</option></select></label>
+              <button id="create-room" class="create-seat-button" type="button">创建并入座</button>
+            </div>
+            <p class="create-hint">ⓘ 人数不足时，可添加人机一起玩</p>
+            <p id="room-create-note" class="create-lock-note hidden">你已在房间中，请先退出当前房间后再创建或加入其他房间。</p>
+          </section>
+        </main>
+        <aside class="club-room-board">
+          <div class="room-board-head"><div><h2>公开房间</h2><p>选择房间，与朋友同桌</p></div><button id="refresh-lobby" class="round-refresh" type="button" aria-label="刷新房间">↻</button></div>
           <div id="room-list" class="room-list"></div>
-        </section>
-        <section id="current-room" class="paper-card panel current-panel hidden"></section>
+          <div class="code-join"><h3><span>♟</span> 房间码加入</h3><div class="inline-form"><input id="room-code" maxlength="6" placeholder="输入 6 位房间码"><button id="join-room" type="button">加入</button></div></div>
+        </aside>
+        <section id="current-room" class="current-table-panel hidden"></section>
       </div>
+      <footer class="lobby-scene-footer"><span><i></i> 服务已连接</span><span>好游戏，好朋友</span></footer>
     </section>
 
     <section id="screen-game" class="screen game-screen hidden">

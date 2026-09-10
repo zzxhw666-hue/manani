@@ -106,7 +106,7 @@ window.SPLENDOR_UI = (function () {
     var cost = tokenPips(card.cost, 'cost');
     var affordable = self && canBuy(self, card);
     var canReserve = self && self.reservedCount < 3;
-    return '<article class="spl-card bonus-' + card.bonus + '"><header><span class="spl-card-points">' + (card.points || '') + '</span><span class="spl-card-gem ' + card.bonus + '">' + META[card.bonus].icon + '</span></header><div class="spl-card-art"><i></i><i></i><i></i></div><div class="spl-card-cost">' + cost + '</div>' + (active ? '<footer><button class="spl-card-action buy" data-buy="' + esc(card.id) + '" type="button" ' + (affordable ? '' : 'disabled title="宝石不足"') + '>购买</button>' + (!reserved && canReserve ? '<button class="spl-card-action reserve" data-reserve="' + esc(card.id) + '" data-tier="' + card.tier + '" type="button">预留</button>' : '') + '</footer>' : '') + '</article>';
+    return '<article class="spl-card bonus-' + card.bonus + '" data-card-tier="' + card.tier + '"><header><span class="spl-card-points">' + (card.points || '') + '</span><span class="spl-card-gem ' + card.bonus + '">' + META[card.bonus].icon + '</span></header><div class="spl-card-art"><i></i><i></i><i></i></div><div class="spl-card-cost">' + cost + '</div>' + (active ? '<footer><button class="spl-card-action buy" data-buy="' + esc(card.id) + '" type="button" ' + (affordable ? '' : 'disabled title="宝石不足"') + '>购买</button>' + (!reserved && canReserve ? '<button class="spl-card-action reserve" data-reserve="' + esc(card.id) + '" data-tier="' + card.tier + '" type="button">预留</button>' : '') + '</footer>' : '') + '</article>';
   }
 
   function bankHtml(room, self, active) {
@@ -198,12 +198,12 @@ window.SPLENDOR_UI = (function () {
     var active = room.status === 'playing' && room.currentPlayerId === self.id && !self.isBot;
     var header = document.getElementById('game-header');
     header.className = 'game-header spl-header';
-    header.innerHTML = '<div class="game-brand"><span class="top-kicker">RENAISSANCE GUILD</span><strong>璀璨宝石</strong></div><div class="header-divider"></div><div class="voyage-meta"><span>回合</span><strong>' + room.turnNumber + '</strong></div><div class="phase-pill"><i></i>' + (room.status === 'finished' ? '最终结算' : '轮到 ' + esc(nickname(room, room.currentPlayerId))) + '</div><div id="decision-clock" class="decision-clock"><span>决策</span><strong>—</strong><small>s</small></div><div class="header-spacer"></div><span class="code-chip">房间 ' + esc(room.code) + '</span><button class="btn ghost small" data-rules type="button">规则</button><button class="btn danger small" data-leave type="button">退出房间</button>';
+    header.innerHTML = '<div class="game-brand"><span class="top-kicker">TABLE CLUB · SPLENDOR</span><strong>璀璨宝石</strong></div><div class="header-divider"></div><div class="voyage-meta"><span>回合</span><strong>' + room.turnNumber + '</strong></div><div class="phase-pill"><i></i>' + (room.status === 'finished' ? '最终结算' : '轮到 ' + esc(nickname(room, room.currentPlayerId))) + '</div><div id="decision-clock" class="decision-clock"><span>决策</span><strong>—</strong><small>s</small></div><div class="header-spacer"></div><span class="code-chip">房间 ' + esc(room.code) + '</span><button class="btn ghost small" data-rules type="button">规则</button><button class="btn danger small" data-leave type="button">退出房间</button>';
     header.querySelector('[data-rules]').onclick = rulesModal;
     header.querySelector('[data-leave]').onclick = function () { if (window.confirm('任意真人玩家退出会解散整个房间，确认退出吗？')) handlers.leave(); };
     startClock(room);
     var root = document.getElementById('game-root');
-    root.innerHTML = '<div class="splendor-table">' + scoreHtml(room) + '<section class="spl-nobles spl-panel"><div class="spl-section-title"><div><span>贵族</span><h2>来访者</h2></div><small>只计算已购买发展卡的永久折扣</small></div><div>' + room.nobles.map(nobleHtml).join('') + '</div></section>' + bankHtml(room, self, active) + '<div class="spl-layout"><main>' + marketHtml(room, self, active) + '</main><aside>' + selfHtml(self, active) + playersHtml(room, self) + historyHtml(room) + '</aside></div></div>';
+    root.innerHTML = '<div class="splendor-table">' + scoreHtml(room) + '<div class="spl-opponents">' + playersHtml(room, self) + '</div><section class="spl-nobles spl-panel"><div class="spl-section-title"><div><span>贵族</span><h2>来访者</h2></div><small>只计算已购买发展卡的永久折扣</small></div><div>' + room.nobles.map(nobleHtml).join('') + '</div></section><div class="spl-main-layout"><main class="spl-board-surface">' + marketHtml(room, self, active) + '</main><aside class="spl-bank-rail">' + bankHtml(room, self, active) + selfHtml(self, active) + historyHtml(room) + '</aside></div></div>';
     bind(root, room, self, active, handlers, tools);
   }
 
