@@ -44,6 +44,26 @@ function canvasTexture(width, height, painter) {
   return texture;
 }
 
+// A procedural studio environment gives every gemstone something bright and dark to reflect.
+const environmentTexture = canvasTexture(1024, 512, (ctx, width, height) => {
+  const gradient = ctx.createLinearGradient(0, 0, 0, height);
+  gradient.addColorStop(0, '#f5d9aa');
+  gradient.addColorStop(.18, '#76533c');
+  gradient.addColorStop(.5, '#172b27');
+  gradient.addColorStop(1, '#080706');
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, width, height);
+  [[130,100,190,70],[690,75,250,56],[875,230,85,210]].forEach(([x,y,w,h]) => {
+    const glow = ctx.createRadialGradient(x,y,1,x,y,Math.max(w,h));
+    glow.addColorStop(0,'rgba(255,244,213,.95)');
+    glow.addColorStop(.24,'rgba(255,207,136,.42)');
+    glow.addColorStop(1,'rgba(255,190,110,0)');
+    ctx.fillStyle = glow; ctx.fillRect(x-w,y-h,w*2,h*2);
+  });
+});
+environmentTexture.mapping = THREE.EquirectangularReflectionMapping;
+scene.environment = environmentTexture;
+
 function noiseTexture(base, grain, streaks) {
   return canvasTexture(512, 512, (ctx, width, height) => {
     ctx.fillStyle = base;
@@ -141,10 +161,10 @@ function loadImage(src) {
 
 function gemGeometry(color, size = .28) {
   let geometry;
-  if (color === 'white') geometry = new THREE.OctahedronGeometry(size, 1);
-  else if (color === 'blue') geometry = new THREE.DodecahedronGeometry(size, 1);
-  else if (color === 'green') geometry = new THREE.BoxGeometry(size * 1.5, size * .62, size * 1.08, 2, 1, 2);
-  else if (color === 'red') geometry = new THREE.OctahedronGeometry(size, 2);
+  if (color === 'white') { geometry = new THREE.OctahedronGeometry(size, 2); geometry.scale(1,.62,1); }
+  else if (color === 'blue') { geometry = new THREE.DodecahedronGeometry(size, 1); geometry.scale(1.08,.72,1); }
+  else if (color === 'green') { geometry = new THREE.DodecahedronGeometry(size, 0); geometry.scale(1.32,.56,.92); }
+  else if (color === 'red') { geometry = new THREE.OctahedronGeometry(size, 2); geometry.scale(1.12,.7,1); }
   else geometry = new THREE.DodecahedronGeometry(size, 0);
   return geometry;
 }
@@ -154,13 +174,17 @@ function gemMaterial(color, transparent = true) {
   return new THREE.MeshPhysicalMaterial({
     color: value,
     emissive: color === 'black' ? 0x030305 : new THREE.Color(value).multiplyScalar(.035),
-    roughness: color === 'gold' ? .22 : .08,
+    roughness: color === 'gold' ? .2 : .035,
     metalness: color === 'gold' ? .76 : .08,
-    transmission: transparent && color !== 'black' && color !== 'gold' ? .26 : 0,
-    thickness: .7,
-    ior: 1.72,
+    transmission: transparent && color !== 'black' && color !== 'gold' ? .58 : 0,
+    thickness: 1.15,
+    ior: 1.78,
+    dispersion: color === 'white' ? .48 : .22,
+    attenuationColor: value,
+    attenuationDistance: 1.8,
+    envMapIntensity: color === 'black' ? 1.7 : 2.7,
     clearcoat: 1,
-    clearcoatRoughness: .08
+    clearcoatRoughness: .025
   });
 }
 
@@ -172,8 +196,12 @@ function makeGem(color, size) {
   gem.rotation.y = .35;
   if (color === 'green') gem.rotation.y = Math.PI / 4;
   group.add(gem);
-  const glint = new THREE.Mesh(new THREE.SphereGeometry(size * .08, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-  glint.position.set(-size * .28, size * .25, size * .35);
+  const inner = new THREE.Mesh(gem.geometry.clone(), new THREE.MeshPhysicalMaterial({ color: COLORS[color].hex, emissive: new THREE.Color(COLORS[color].hex).multiplyScalar(.12), roughness: 0, transmission: color === 'black' || color === 'gold' ? 0 : .18, transparent: true, opacity: .38, side: THREE.BackSide, envMapIntensity: 3.2 }));
+  inner.scale.setScalar(.72); inner.rotation.y = -.22; group.add(inner);
+  const edges = new THREE.LineSegments(new THREE.EdgesGeometry(gem.geometry, 22), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: color === 'black' ? .16 : .3 }));
+  edges.rotation.copy(gem.rotation); group.add(edges);
+  const glint = new THREE.Mesh(new THREE.SphereGeometry(size * .065, 16, 10), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+  glint.position.set(-size * .31, size * .23, size * .36);
   group.add(glint);
   return group;
 }
@@ -257,7 +285,7 @@ function makeCard(atlas, gemImages, tier, column, color, points, seed) {
   const face = new THREE.MeshStandardMaterial({ map: texture, roughness: .58, metalness: .01 });
   const edge = new THREE.MeshStandardMaterial({ color: 0xb8a586, roughness: .75 });
   const bottom = new THREE.MeshStandardMaterial({ color: 0x3a2419, roughness: .82 });
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(2.05, .12, 2.72), [edge, edge, face, bottom, edge, edge]);
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(2.05, .045, 2.72), [edge, edge, face, bottom, edge, edge]);
   const xs = [-4.15, -1.65, .85, 3.35];
   const zs = [-2.68, .22, 3.12];
   mesh.position.set(xs[column], -.22, zs[tier]);
@@ -266,7 +294,7 @@ function makeCard(atlas, gemImages, tier, column, color, points, seed) {
   mesh.userData = { kind: 'card', label: `${points ? points + ' 分 · ' : ''}${COLORS[color].label}发展卡`, baseY: -.22, hoverY: .18, targetTilt: 0 };
   interactive.push(mesh); scene.add(mesh);
   const gem = makeGem(color, .19);
-  gem.position.set(.72, .16, -.93);
+  gem.position.set(.72, .085, -.93);
   gem.scale.y = .55;
   mesh.add(gem);
   return mesh;
@@ -276,8 +304,8 @@ function makeDeck(tier, color) {
   const group = new THREE.Group();
   const zs = [-2.68, .22, 3.12];
   for (let i = 0; i < 8; i += 1) {
-    const layer = new THREE.Mesh(new THREE.BoxGeometry(1.75, .05, 2.45), new THREE.MeshStandardMaterial({ color, roughness: .58, metalness: .03 }));
-    layer.position.set(-7.32 + (i % 2) * .012, -.32 + i * .035, zs[tier]);
+    const layer = new THREE.Mesh(new THREE.BoxGeometry(1.75, .024, 2.45), new THREE.MeshStandardMaterial({ color, roughness: .58, metalness: .03 }));
+    layer.position.set(-7.32 + (i % 2) * .012, -.32 + i * .019, zs[tier]);
     layer.rotation.y = (i - 3.5) * .003;
     layer.castShadow = true; group.add(layer);
   }

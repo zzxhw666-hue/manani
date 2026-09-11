@@ -28,10 +28,24 @@ button, a { font: inherit; }
 .bank-label { position: absolute; z-index: 4; top: 160px; right: 27px; width: 250px; display: flex; gap: 10px; align-items: center; padding-bottom: 8px; color: #f0dfc0; border-bottom: 1px solid rgba(187,146,88,.46); text-shadow: 0 2px 5px #000; pointer-events: none; }
 .bank-label > small { color: #a77b4a; letter-spacing: .2em; }.bank-label strong { display: block; font: 600 21px Georgia,"Songti SC",serif; }.bank-label span { display: block; color: #9b8a76; font-size: 8px; letter-spacing: .1em; }
 
+.player-desks { position: absolute; z-index: 5; left: 26px; right: 330px; bottom: 17px; height: 119px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; pointer-events: none; }
+.player-desk { min-width: 0; display: grid; grid-template-columns: 114px minmax(0,1fr); grid-template-rows: 1fr 27px; gap: 0 9px; padding: 8px 10px 7px 8px; color: #e9dac0; border: 1px solid rgba(122,88,54,.82); border-radius: 8px; background: linear-gradient(145deg,rgba(48,34,25,.95),rgba(15,12,10,.96)); box-shadow: inset 0 0 0 1px rgba(255,222,168,.035),0 12px 30px rgba(0,0,0,.42); backdrop-filter: blur(10px); }
+.player-desk.active { border-color: #c99d50; box-shadow: inset 0 0 20px rgba(201,157,80,.08),0 0 0 1px rgba(201,157,80,.18),0 12px 30px rgba(0,0,0,.45); }
+.desk-identity { grid-row: 1 / 3; display: grid; grid-template-columns: 38px 1fr; align-items: center; gap: 8px; padding-right: 8px; border-right: 1px solid #5e4632; }
+.desk-identity .avatar { width: 38px; height: 38px; }
+.desk-identity small { display: block; overflow: hidden; color: #bbaa90; font-size: 8px; white-space: nowrap; text-overflow: ellipsis; }
+.desk-identity strong { display: block; margin-top: 3px; color: #f0c861; font: 600 25px/1 Georgia,serif; }.desk-identity em { color: #a99a84; font: 400 8px sans-serif; }
+.desk-assets { min-width: 0; display: flex; align-items: end; justify-content: center; gap: clamp(0px,.5vw,7px); overflow: hidden; }
+.desk-assets span { position: relative; width: clamp(34px,3vw,51px); height: 63px; display: grid; place-items: center; flex: 0 1 51px; }
+.desk-assets img { width: 100%; height: 54px; object-fit: contain; filter: drop-shadow(0 5px 3px rgba(0,0,0,.62)) saturate(1.08) contrast(1.04); }
+.desk-assets b { position: absolute; right: 0; bottom: 1px; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 4px; color: #fff6e5; font-size: 9px; border: 1px solid #c6a56b; border-radius: 10px; background: #1b1511; box-shadow: 0 2px 4px #0008; }
+.desk-bonus { min-width: 0; display: flex; align-items: center; justify-content: center; gap: 8px; padding-top: 3px; color: #dbc69f; border-top: 1px solid #513e2e; font-size: 8px; white-space: nowrap; overflow: hidden; }
+.desk-bonus small { color: #8f816f; }.desk-bonus span { overflow: hidden; text-overflow: ellipsis; }
+
 .turn-panel { position: absolute; z-index: 5; right: 26px; bottom: 27px; width: 285px; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; padding: 14px 14px 14px 17px; color: #e9d8bd; border: 1px solid #725335; border-radius: 8px; background: linear-gradient(145deg,rgba(45,32,24,.94),rgba(17,13,11,.95)); box-shadow: 0 12px 30px rgba(0,0,0,.45); backdrop-filter: blur(10px); }
 .turn-panel span { color: #d9b05e; font: 600 14px Georgia,"Songti SC",serif; }.turn-panel strong { max-width: 155px; color: #a99a85; font-size: 8px; font-weight: 400; line-height: 1.45; }.turn-panel button { grid-column: 2; grid-row: 1/3; min-width: 91px; color: #f5dfb0; border-color: #b88947; background: linear-gradient(#174d3d,#0b2b24); }
 .turn-panel button:hover { transform: translateY(-1px); filter: brightness(1.12); }
-.quality-badge, .interaction-hint { position: absolute; z-index: 4; bottom: 23px; color: #9b8c79; font-size: 9px; letter-spacing: .08em; pointer-events: none; text-shadow: 0 1px 4px #000; }
+.quality-badge, .interaction-hint { position: absolute; z-index: 4; bottom: 148px; color: #9b8c79; font-size: 9px; letter-spacing: .08em; pointer-events: none; text-shadow: 0 1px 4px #000; }
 .quality-badge { left: 28px; }.quality-badge i { width: 7px; height: 7px; display: inline-block; margin-right: 6px; border-radius: 50%; background: #48d07b; box-shadow: 0 0 8px #48d07b; }
 .interaction-hint { left: 50%; transform: translateX(-50%); }
 
@@ -45,4 +59,7 @@ button, a { font: inherit; }
   .demo-header { padding-inline: 17px; }.demo-header a span { display: none; }
   .player-strip { width: calc(100% - 24px); }.player-strip article { grid-template-columns: 34px 1fr auto; }.avatar { width: 34px;height:34px; }
   .bank-label { display: none; }.interaction-hint { display: none; }
+  .player-desks { right: 18px; left: 18px; grid-template-columns: 1fr; }
+  .player-desk:not(.active) { display: none; }
+  .turn-panel { display: none; }
 }
