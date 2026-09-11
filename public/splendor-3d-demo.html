@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>璀璨宝石 · 3D 桌面视觉 Demo</title>
+  <link rel="stylesheet" href="css/splendor-3d-demo.css">
+</head>
+<body>
+  <main id="demo-shell">
+    <div id="scene" aria-label="璀璨宝石 3D 游戏桌"></div>
+
+    <header class="demo-header">
+      <a href="/" aria-label="返回同桌大厅">← <span>返回大厅</span></a>
+      <div class="brand">
+        <small>TABLE CLUB · VISUAL PROTOTYPE</small>
+        <h1>璀璨宝石</h1>
+        <span>SPLENDOR · 3D TABLE</span>
+      </div>
+      <button id="reset-camera" type="button">重置视角</button>
+    </header>
+
+    <section class="player-strip" aria-label="对手状态">
+      <article><i class="avatar blue">周</i><div><strong>老周</strong><small>6 声望 · 8 枚宝石</small></div><b>6</b></article>
+      <article class="active"><i class="avatar gold">林</i><div><strong>林小雨</strong><small>你的回合</small></div><b>8</b></article>
+      <article><i class="avatar green">凯</i><div><strong>阿凯</strong><small>4 声望 · 6 枚宝石</small></div><b>4</b></article>
+    </section>
+
+    <aside class="bank-label" aria-hidden="true">
+      <small>01</small>
+      <div><strong>宝石银行</strong><span>真实几何体 · 动态光照</span></div>
+    </aside>
+
+    <section class="turn-panel">
+      <span>轮到你了</span>
+      <strong id="selection-copy">悬停卡牌或宝石查看实体反馈</strong>
+      <button id="confirm-demo" type="button">确认拿取</button>
+    </section>
+
+    <div class="quality-badge"><i></i> WebGL 实时渲染</div>
+    <div class="interaction-hint">移动鼠标观察景深与视差 · 悬停卡牌会抬起</div>
+    <div id="loading"><span></span><p>正在布置 3D 游戏桌…</p></div>
+  </main>
+  <script type="module" src="js/splendor-3d-demo.js"></script>
+</body>
+</html>
