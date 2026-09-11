@@ -1,83 +1,30 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <title>璀璨宝石 · 3D 桌面视觉 Demo</title>
-  <link rel="stylesheet" href="css/splendor-3d-demo.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>璀璨宝石 · 入座视角 Demo</title>
+<link rel="stylesheet" href="css/splendor-3d-demo.css">
 </head>
 <body>
-  <main id="demo-shell">
-    <div id="scene" aria-label="璀璨宝石 3D 游戏桌"></div>
-
-    <header class="demo-header">
-      <a href="/" aria-label="返回同桌大厅">← <span>返回大厅</span></a>
-      <div class="brand">
-        <small>TABLE CLUB · VISUAL PROTOTYPE</small>
-        <h1>璀璨宝石</h1>
-        <span>SPLENDOR · 3D TABLE</span>
-      </div>
-      <button id="reset-camera" type="button">重置视角</button>
-    </header>
-
-    <section class="player-strip" aria-label="对手状态">
-      <article><i class="avatar blue">周</i><div><strong>老周</strong><small>6 声望 · 8 枚宝石</small></div><b>6</b></article>
-      <article class="active"><i class="avatar gold">林</i><div><strong>林小雨</strong><small>你的回合</small></div><b>8</b></article>
-      <article><i class="avatar green">凯</i><div><strong>阿凯</strong><small>4 声望 · 6 枚宝石</small></div><b>4</b></article>
-    </section>
-
-    <aside class="bank-label" aria-hidden="true">
-      <small>01</small>
-      <div><strong>宝石银行</strong><span>真实几何体 · 动态光照</span></div>
-    </aside>
-
-    <section class="player-desks" aria-label="玩家桌面">
-      <article class="player-desk">
-        <div class="desk-identity"><i class="avatar blue">周</i><div><small>老周的珠宝行</small><strong>6 <em>声望</em></strong></div></div>
-        <div class="desk-assets" aria-label="老周持有的宝石">
-          <span><img src="assets/table-club/gems/stack-white.png" alt="钻石"><b>1</b></span>
-          <span><img src="assets/table-club/gems/stack-blue.png" alt="蓝宝石"><b>2</b></span>
-          <span><img src="assets/table-club/gems/stack-green.png" alt="祖母绿"><b>0</b></span>
-          <span><img src="assets/table-club/gems/stack-red.png" alt="红宝石"><b>2</b></span>
-          <span><img src="assets/table-club/gems/stack-black.png" alt="玛瑙"><b>1</b></span>
-        </div>
-        <div class="desk-bonus"><small>永久折扣</small><span>◇ 1　◆ 2　⬟ 0　♦ 2　● 1</span></div>
-      </article>
-      <article class="player-desk active">
-        <div class="desk-identity"><i class="avatar gold">林</i><div><small>我的珠宝行</small><strong>8 <em>声望</em></strong></div></div>
-        <div class="desk-assets" aria-label="林小雨持有的宝石">
-          <span><img src="assets/table-club/gems/stack-white.png" alt="钻石"><b>2</b></span>
-          <span><img src="assets/table-club/gems/stack-blue.png" alt="蓝宝石"><b>3</b></span>
-          <span><img src="assets/table-club/gems/stack-green.png" alt="祖母绿"><b>3</b></span>
-          <span><img src="assets/table-club/gems/stack-red.png" alt="红宝石"><b>1</b></span>
-          <span><img src="assets/table-club/gems/stack-black.png" alt="玛瑙"><b>0</b></span>
-          <span><img src="assets/table-club/gems/stack-gold.png" alt="黄金"><b>1</b></span>
-        </div>
-        <div class="desk-bonus"><small>永久折扣</small><span>◇ 1　◆ 1　⬟ 1　♦ 1　● 0</span></div>
-      </article>
-      <article class="player-desk">
-        <div class="desk-identity"><i class="avatar green">凯</i><div><small>阿凯的珠宝行</small><strong>4 <em>声望</em></strong></div></div>
-        <div class="desk-assets" aria-label="阿凯持有的宝石">
-          <span><img src="assets/table-club/gems/stack-white.png" alt="钻石"><b>0</b></span>
-          <span><img src="assets/table-club/gems/stack-blue.png" alt="蓝宝石"><b>1</b></span>
-          <span><img src="assets/table-club/gems/stack-green.png" alt="祖母绿"><b>2</b></span>
-          <span><img src="assets/table-club/gems/stack-red.png" alt="红宝石"><b>2</b></span>
-          <span><img src="assets/table-club/gems/stack-black.png" alt="玛瑙"><b>1</b></span>
-        </div>
-        <div class="desk-bonus"><small>永久折扣</small><span>◇ 0　◆ 1　⬟ 2　♦ 2　● 1</span></div>
-      </article>
-    </section>
-
-    <section class="turn-panel">
-      <span>轮到你了</span>
-      <strong id="selection-copy">悬停卡牌或宝石查看实体反馈</strong>
-      <button id="confirm-demo" type="button">确认拿取</button>
-    </section>
-
-    <div class="quality-badge"><i></i> WebGL 实时渲染</div>
-    <div class="interaction-hint">移动鼠标观察景深与视差 · 悬停卡牌会抬起</div>
-    <div id="loading"><span></span><p>正在布置 3D 游戏桌…</p></div>
-  </main>
-  <script type="module" src="js/splendor-3d-demo.js"></script>
+<main id="demo-shell">
+  <div id="scene" aria-label="璀璨宝石三维桌面"></div>
+  <header class="demo-header">
+    <a href="/">← 返回大厅</a>
+    <div class="brand"><h1>璀璨宝石</h1><span>S P L E N D O R</span></div>
+    <div class="demo-controls"><label>体验座位 <select id="seat-select" aria-label="切换体验座位"></select></label><button id="reset-camera" type="button">归位</button></div>
+  </header>
+  <section id="opponents" class="player-strip" aria-label="其他玩家"></section>
+  <section id="self-accessible" class="sr-only" aria-label="我的珠宝行"></section>
+  <aside class="turn-panel"><span id="turn-copy"></span><button id="confirm-demo" type="button">体验拿取</button><small id="selection-copy" role="status" aria-live="polite">点选一组宝石，体验拿取动画</small></aside>
+  <footer class="demo-note"><span>同桌 · 视觉体验 Demo</span><span>拖动微调视角 · 点击宝石或卡牌</span></footer>
+  <div id="loading" role="status"><p>正在为你布置桌面…</p></div>
+</main>
+<script type="module">
+  import('./js/splendor-3d-demo.js').catch(error => {
+    console.error(error);
+    document.querySelector('#loading p').textContent = '三维桌面暂时无法加载，请启用浏览器硬件加速后刷新。';
+  });
+</script>
 </body>
 </html>

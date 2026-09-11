@@ -1,65 +1,9 @@
-:root { color-scheme: dark; font-family: Inter,"PingFang SC","Microsoft YaHei",sans-serif; }
-* { box-sizing: border-box; }
-html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #0b0806; }
-button, a { font: inherit; }
-#demo-shell { position: relative; width: 100%; height: 100%; min-height: 620px; overflow: hidden; background: #100b08; }
-#scene, #scene canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-#scene { cursor: grab; }
-#scene.is-dragging { cursor: grabbing; }
-
-.demo-header { position: absolute; z-index: 5; inset: 0 0 auto; height: 76px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 0 34px; color: #f1e4cd; border-bottom: 1px solid rgba(212,169,97,.35); background: linear-gradient(180deg,rgba(15,10,7,.94),rgba(18,11,8,.76)); backdrop-filter: blur(13px); box-shadow: 0 7px 26px rgba(0,0,0,.32); }
-.demo-header a { justify-self: start; color: #e8d8bb; text-decoration: none; font-size: 14px; letter-spacing: .08em; }
-.demo-header a:hover { color: #ffd986; }
-.demo-header .brand { text-align: center; text-shadow: 0 2px 9px #000; }
-.demo-header small, .demo-header .brand > span { display: block; color: #b99b69; font-size: 8px; letter-spacing: .34em; }
-.demo-header h1 { margin: 2px 0 0; color: #f3d690; font: 600 25px/1.05 Georgia,"Songti SC",serif; letter-spacing: .18em; }
-.demo-header button, .turn-panel button { justify-self: end; padding: 10px 17px; color: #f1dfbd; border: 1px solid #896b43; border-radius: 6px; background: linear-gradient(#32251b,#18120f); box-shadow: inset 0 0 0 1px rgba(255,255,255,.04); cursor: pointer; }
-.demo-header button:hover { border-color: #ddb66c; }
-
-.player-strip { position: absolute; z-index: 4; top: 88px; left: 50%; width: min(980px,calc(100% - 430px)); display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; transform: translateX(-50%); pointer-events: none; }
-.player-strip article { min-width: 0; height: 55px; display: grid; grid-template-columns: 40px 1fr auto; align-items: center; gap: 10px; padding: 6px 13px 6px 7px; color: #e8dac2; border: 1px solid rgba(157,120,75,.62); border-radius: 8px; background: linear-gradient(110deg,rgba(54,39,29,.93),rgba(19,15,13,.87)); box-shadow: 0 8px 20px rgba(0,0,0,.28); backdrop-filter: blur(8px); }
-.player-strip article.active { border-color: #ddb45c; box-shadow: 0 0 0 1px rgba(221,180,92,.26),0 10px 25px rgba(0,0,0,.35); }
-.avatar { width: 40px; height: 40px; display: grid; place-items: center; border: 2px solid #d8b779; border-radius: 50%; color: #fff8e7; font: 600 15px Georgia,"Songti SC",serif; background: radial-gradient(circle at 32% 26%,#836e56,#2d241d 62%); box-shadow: inset 0 0 8px rgba(255,255,255,.16),0 3px 7px #0008; }
-.avatar.blue { border-color: #70a9d2; }.avatar.gold { border-color: #f1c95e; }.avatar.green { border-color: #69b88a; }
-.player-strip strong, .player-strip small { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.player-strip strong { font: 600 13px Georgia,"Songti SC",serif; }.player-strip small { margin-top: 3px; color: #9f907d; font-size: 8px; }
-.player-strip b { color: #e9c357; font: 600 24px Georgia,serif; }
-
-.bank-label { position: absolute; z-index: 4; top: 160px; right: 27px; width: 250px; display: flex; gap: 10px; align-items: center; padding-bottom: 8px; color: #f0dfc0; border-bottom: 1px solid rgba(187,146,88,.46); text-shadow: 0 2px 5px #000; pointer-events: none; }
-.bank-label > small { color: #a77b4a; letter-spacing: .2em; }.bank-label strong { display: block; font: 600 21px Georgia,"Songti SC",serif; }.bank-label span { display: block; color: #9b8a76; font-size: 8px; letter-spacing: .1em; }
-
-.player-desks { position: absolute; z-index: 5; left: 26px; right: 330px; bottom: 17px; height: 119px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; pointer-events: none; }
-.player-desk { min-width: 0; display: grid; grid-template-columns: 114px minmax(0,1fr); grid-template-rows: 1fr 27px; gap: 0 9px; padding: 8px 10px 7px 8px; color: #e9dac0; border: 1px solid rgba(122,88,54,.82); border-radius: 8px; background: linear-gradient(145deg,rgba(48,34,25,.95),rgba(15,12,10,.96)); box-shadow: inset 0 0 0 1px rgba(255,222,168,.035),0 12px 30px rgba(0,0,0,.42); backdrop-filter: blur(10px); }
-.player-desk.active { border-color: #c99d50; box-shadow: inset 0 0 20px rgba(201,157,80,.08),0 0 0 1px rgba(201,157,80,.18),0 12px 30px rgba(0,0,0,.45); }
-.desk-identity { grid-row: 1 / 3; display: grid; grid-template-columns: 38px 1fr; align-items: center; gap: 8px; padding-right: 8px; border-right: 1px solid #5e4632; }
-.desk-identity .avatar { width: 38px; height: 38px; }
-.desk-identity small { display: block; overflow: hidden; color: #bbaa90; font-size: 8px; white-space: nowrap; text-overflow: ellipsis; }
-.desk-identity strong { display: block; margin-top: 3px; color: #f0c861; font: 600 25px/1 Georgia,serif; }.desk-identity em { color: #a99a84; font: 400 8px sans-serif; }
-.desk-assets { min-width: 0; display: flex; align-items: end; justify-content: center; gap: clamp(0px,.5vw,7px); overflow: hidden; }
-.desk-assets span { position: relative; width: clamp(34px,3vw,51px); height: 63px; display: grid; place-items: center; flex: 0 1 51px; }
-.desk-assets img { width: 100%; height: 54px; object-fit: contain; filter: drop-shadow(0 5px 3px rgba(0,0,0,.62)) saturate(1.08) contrast(1.04); }
-.desk-assets b { position: absolute; right: 0; bottom: 1px; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 4px; color: #fff6e5; font-size: 9px; border: 1px solid #c6a56b; border-radius: 10px; background: #1b1511; box-shadow: 0 2px 4px #0008; }
-.desk-bonus { min-width: 0; display: flex; align-items: center; justify-content: center; gap: 8px; padding-top: 3px; color: #dbc69f; border-top: 1px solid #513e2e; font-size: 8px; white-space: nowrap; overflow: hidden; }
-.desk-bonus small { color: #8f816f; }.desk-bonus span { overflow: hidden; text-overflow: ellipsis; }
-
-.turn-panel { position: absolute; z-index: 5; right: 26px; bottom: 27px; width: 285px; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; padding: 14px 14px 14px 17px; color: #e9d8bd; border: 1px solid #725335; border-radius: 8px; background: linear-gradient(145deg,rgba(45,32,24,.94),rgba(17,13,11,.95)); box-shadow: 0 12px 30px rgba(0,0,0,.45); backdrop-filter: blur(10px); }
-.turn-panel span { color: #d9b05e; font: 600 14px Georgia,"Songti SC",serif; }.turn-panel strong { max-width: 155px; color: #a99a85; font-size: 8px; font-weight: 400; line-height: 1.45; }.turn-panel button { grid-column: 2; grid-row: 1/3; min-width: 91px; color: #f5dfb0; border-color: #b88947; background: linear-gradient(#174d3d,#0b2b24); }
-.turn-panel button:hover { transform: translateY(-1px); filter: brightness(1.12); }
-.quality-badge, .interaction-hint { position: absolute; z-index: 4; bottom: 148px; color: #9b8c79; font-size: 9px; letter-spacing: .08em; pointer-events: none; text-shadow: 0 1px 4px #000; }
-.quality-badge { left: 28px; }.quality-badge i { width: 7px; height: 7px; display: inline-block; margin-right: 6px; border-radius: 50%; background: #48d07b; box-shadow: 0 0 8px #48d07b; }
-.interaction-hint { left: 50%; transform: translateX(-50%); }
-
-#loading { position: absolute; z-index: 9; inset: 0; display: grid; place-content: center; justify-items: center; gap: 15px; color: #cab998; background: radial-gradient(circle at 50% 45%,#173c32,#090806 70%); transition: opacity .7s ease,visibility .7s; }
-#loading.hidden { opacity: 0; visibility: hidden; }
-#loading span { width: 52px; height: 52px; border: 2px solid rgba(225,189,116,.18); border-top-color: #e1bd74; border-radius: 50%; animation: spin 1s linear infinite; }
-#loading p { margin: 0; font-size: 11px; letter-spacing: .2em; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-@media (max-width: 900px) {
-  .demo-header { padding-inline: 17px; }.demo-header a span { display: none; }
-  .player-strip { width: calc(100% - 24px); }.player-strip article { grid-template-columns: 34px 1fr auto; }.avatar { width: 34px;height:34px; }
-  .bank-label { display: none; }.interaction-hint { display: none; }
-  .player-desks { right: 18px; left: 18px; grid-template-columns: 1fr; }
-  .player-desk:not(.active) { display: none; }
-  .turn-panel { display: none; }
-}
+:root{color-scheme:dark;font-family:"PingFang SC","Microsoft YaHei",sans-serif;color:#eee1c6}
+*{box-sizing:border-box}body{margin:0;background:#17110d}button,select{font:inherit;color:inherit}button,select,a{touch-action:manipulation}button:focus-visible,select:focus-visible,a:focus-visible{outline:2px solid #eac77c;outline-offset:4px}
+#demo-shell{position:relative;width:100vw;height:100dvh;min-height:560px;overflow:hidden}#scene,#scene canvas{position:absolute;inset:0;width:100%;height:100%;display:block}#scene canvas{touch-action:none;cursor:grab}
+.demo-header{position:absolute;inset:0 0 auto;z-index:3;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:66px;padding:0 26px;background:#120d09d9;border-bottom:1px solid #bd96524a;backdrop-filter:blur(12px)}a{color:inherit;text-decoration:none;font-size:13px;justify-self:start}.brand{text-align:center}.brand h1{margin:0;font:500 26px "Songti SC",Georgia,serif;letter-spacing:.25em;color:#edd39c}.brand span{font-size:9px;color:#c6ad82}.demo-controls{justify-self:end;display:flex;align-items:center;gap:10px}.demo-controls label{font-size:10px;color:#bba789}select,button{background:#211a12;border:1px solid #8e724b;border-radius:6px;padding:8px 12px;font-size:12px;cursor:pointer}select{margin-left:5px}
+.player-strip{position:absolute;z-index:2;top:77px;left:50%;transform:translateX(-50%);width:min(940px,68vw);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;pointer-events:none}.player-strip article{display:grid;grid-template-columns:44px 1fr auto;gap:10px;align-items:center;padding:7px 15px 7px 8px;background:#18120bd9;border:1px solid #b091595c;border-radius:30px 9px 9px 30px;box-shadow:0 5px 16px #0005}.portrait{height:43px;width:43px;display:grid;place-items:center;border:2px solid #b9a078;border-radius:50%;font:20px "Songti SC",serif;background:#403326}.player-strip h2{margin:0 0 3px;font:14px "Songti SC",serif}.player-strip small{color:#bfb196;font-size:9px}.player-strip b{font:24px Georgia,serif;color:#f3cf7b}.opponent-tokens{display:flex;gap:6px;align-items:center}.opponent-tokens span{display:flex;align-items:center;font-size:10px;color:#e3d5bc}.opponent-tokens img{width:17px;height:17px;object-fit:contain}
+.turn-panel{position:absolute;z-index:2;right:4%;bottom:6%;width:210px;display:grid;gap:9px;text-align:center;text-shadow:0 2px 5px #000}.turn-panel>span{font:16px "Songti SC",serif}.turn-panel button{padding:13px;color:#f3dfb9;border:1px solid #d3ad65;border-radius:30px;background:#143e2ee8;box-shadow:0 4px 12px #0008}.turn-panel small{min-height:28px;font-size:10px;color:#c8b597}.demo-note{position:absolute;bottom:10px;left:25px;right:25px;display:flex;justify-content:space-between;color:#b7a68a;font-size:9px;pointer-events:none}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+#loading{position:absolute;inset:0;z-index:9;display:grid;place-items:center;background:#17271e;color:#e4c996;transition:opacity .5s}#loading.hidden{opacity:0;pointer-events:none}#loading p{font:18px "Songti SC",serif;letter-spacing:.15em}
+@media(max-width:1500px){.turn-panel{width:145px;right:3%}.turn-panel>span{font-size:13px}.turn-panel button{padding:10px}}
+@media(max-width:950px){.demo-header{padding:0 12px;height:58px}.brand h1{font-size:20px}.demo-controls label{font-size:0}select{font-size:11px;padding:6px}.player-strip{top:68px;width:90vw;gap:6px}.player-strip article{padding:4px 6px;grid-template-columns:28px 1fr auto;gap:5px}.portrait{width:28px;height:28px;font-size:14px}.player-strip h2{font-size:11px}.opponent-tokens{gap:1px}.opponent-tokens img{width:11px}.opponent-tokens span{font-size:8px}.turn-panel{width:145px;right:2%;bottom:5%}.turn-panel>span{font-size:12px}.turn-panel button{padding:8px}.demo-note{font-size:8px}}
