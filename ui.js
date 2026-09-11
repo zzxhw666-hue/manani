@@ -190,7 +190,7 @@ window.MANILA_UI = (function () {
     return '<section class="market box"><div class="section-heading"><div><span class="section-no">01</span><h2>黑市行情</h2></div><small>任一货物达到 30₱，游戏结束</small></div><div class="market-grid">' + D.wareIds.map(function (ware) {
       var data = D.wares[ware];
       var level = room.market[ware];
-      return '<article class="market-card" style="--ware:' + data.color + ';--ink:' + data.ink + '"><div class="market-icon">' + data.icon + '</div><div><span>' + data.en + '</span><strong>' + data.name + '</strong></div><b>' + D.marketTrack[level] + '<small>₱</small></b><div class="market-track">' + D.marketTrack.map(function (price, index) { return '<i class="' + (index <= level ? 'filled' : '') + '" title="' + price + '"></i>'; }).join('') + '</div><em>库存 ' + room.stockSupply[ware] + '</em></article>';
+      return '<article class="market-card ware-' + ware + '" style="--ware:' + data.color + ';--ink:' + data.ink + '"><div class="market-icon">' + data.icon + '</div><div class="market-name"><span>' + data.en + '</span><strong>' + data.name + '</strong></div><b>' + D.marketTrack[level] + '<small>₱</small></b><div class="market-track">' + D.marketTrack.map(function (price, index) { return '<i class="' + (index === level ? 'current' : '') + '" title="' + price + '₱"><span></span><small>' + price + '</small></i>'; }).join('') + '</div><em>余 ' + room.stockSupply[ware] + ' 股</em></article>';
     }).join('') + '</div></section>';
   }
 
@@ -205,7 +205,7 @@ window.MANILA_UI = (function () {
       return '<span class="crew-slot ' + (!item && activePlacement && boat.status === 'sea' && index === boat.crew.length ? 'clickable' : '') + '" ' + (!item && activePlacement && index === boat.crew.length ? 'data-place="boat:' + boat.ware + '"' : '') + '>' + (item ? token(room, item) : '<b>' + cost + '₱</b>') + '</span>';
     }).join('');
     var destination = boat.status === 'sea' ? '<span class="at-sea">航道 ' + boat.position + '</span>' : '<span class="docked ' + boat.status + '">' + (boat.status === 'port' ? '港口' : '船厂') + ' ' + boat.dock + (boat.plundered ? ' · 已劫掠' : '') + '</span>';
-    return '<article class="boat-lane" style="--ware:' + data.color + '"><div class="boat-info"><span class="cargo-symbol">' + data.icon + '</span><div><small>' + data.en + '</small><strong>' + data.name + '船</strong></div><b>奖池 ' + data.pool + '₱</b></div><div class="route"><span class="route-label">外海</span>' + cells + '<span class="route-label port-label">马尼拉港</span></div><div class="boat-bottom"><div class="crew-row"><span class="micro-label">船员位</span>' + crew + '</div>' + destination + '</div></article>';
+    return '<article class="boat-lane ware-' + boat.ware + '" style="--ware:' + data.color + '"><div class="boat-info"><span class="cargo-symbol">' + data.icon + '</span><div><small>' + data.en + '</small><strong>' + data.name + '船</strong></div><b>奖池 ' + data.pool + '₱</b></div><div class="route"><span class="route-label">外海</span>' + cells + '<span class="route-label port-label">马尼拉港</span></div><div class="boat-bottom"><div class="crew-row"><span class="micro-label">船员位</span>' + crew + '</div>' + destination + '</div></article>';
   }
 
   function dockZone(room, area, activePlacement) {
@@ -276,17 +276,20 @@ window.MANILA_UI = (function () {
       var mortgaged = me.mortgaged ? me.mortgaged[ware] : 0;
       var free = count - mortgaged;
       var canRedeem = !reservedBid || fundsAfterRedeem >= reservedBid;
-      return '<div class="share-row" style="--ware:' + D.wares[ware].color + '"><span class="share-gem">' + D.wares[ware].icon + '</span><div><strong>' + D.wares[ware].name + '</strong><small>' + count + ' 股 · 市值 ' + (count * D.marketTrack[room.market[ware]]) + '₱' + (mortgaged ? ' · 抵押 ' + mortgaged : '') + '</small></div><div class="share-actions">' + (free > 0 && room.status === 'playing' && room.phase !== 'settlement_review' ? '<button data-mortgage="' + ware + '" title="抵押得 12₱">借</button>' : '') + (mortgaged > 0 && me.cash >= 15 && room.status === 'playing' && room.phase !== 'settlement_review' && canRedeem ? '<button data-redeem="' + ware + '" title="支付 15₱ 赎回">赎</button>' : '') + '</div></div>';
+      return '<div class="share-row ware-' + ware + '" style="--ware:' + D.wares[ware].color + '"><span class="share-gem">' + D.wares[ware].icon + '</span><div><strong>' + D.wares[ware].name + '</strong><small>' + count + ' 股 · ' + (count * D.marketTrack[room.market[ware]]) + '₱' + (mortgaged ? ' · 抵押 ' + mortgaged : '') + '</small></div><div class="share-actions">' + (free > 0 && room.status === 'playing' && room.phase !== 'settlement_review' ? '<button data-mortgage="' + ware + '" title="抵押得 12₱">借</button>' : '') + (mortgaged > 0 && me.cash >= 15 && room.status === 'playing' && room.phase !== 'settlement_review' && canRedeem ? '<button data-redeem="' + ware + '" title="支付 15₱ 赎回">赎</button>' : '') + '</div></div>';
     }).join('');
     var stockValue = D.wareIds.reduce(function (sum, ware) { return sum + (me.shares ? me.shares[ware] : 0) * D.marketTrack[room.market[ware]]; }, 0);
     var loanNote = reservedBid ? '当前最高报价 ' + reservedBid + '₱ 已锁定融资额度，不能赎回使额度低于报价。' : '抵押 1 股获得 12₱；支付 15₱ 可赎回。';
-    return '<section class="assets box"><div class="asset-head"><div><span>我的现金</span><strong>' + me.cash + '<small>₱</small></strong></div><div><span>股票市值</span><strong>' + stockValue + '<small>₱</small></strong></div><div><span>可用帮手</span><strong>' + me.pawnsAvailable + '<small>/' + me.pawnsTotal + '</small></strong></div></div><div class="share-list">' + shareRows + '</div><p class="loan-note">' + loanNote + '</p></section>';
+    var pawnPieces = Array.from({ length: me.pawnsTotal }, function (_, index) { return '<i class="' + (index < me.pawnsAvailable ? 'available' : 'used') + '"></i>'; }).join('');
+    return '<section class="assets box"><div class="self-ledger"><span class="self-portrait" style="--player:' + me.color + '">' + esc(me.nickname.slice(0, 1)) + '</span><div><small>MY COMPANY</small><strong>我的商会</strong><em>' + esc(me.nickname) + '</em></div><b>' + me.cash + '<small>₱</small></b><span>股票市值 ' + stockValue + '₱</span></div><div class="self-pawn-bank"><span>可用帮手</span><div class="pawn-pieces" style="--player:' + me.color + '">' + pawnPieces + '</div><strong>' + me.pawnsAvailable + ' / ' + me.pawnsTotal + '</strong></div><div class="self-share-bank"><span class="asset-label">秘密股票</span><div class="share-list">' + shareRows + '</div><p class="loan-note">' + loanNote + '</p></div></section>';
   }
 
   function playersHtml(room, me) {
-    return '<section class="players box"><div class="section-heading compact"><div><span class="section-no">04</span><h2>商人席位</h2></div></div><div class="player-list">' + room.players.map(function (player) {
+    var opponents = room.players.filter(function (player) { return player.id !== me.id; });
+    return '<section class="players box"><div class="section-heading compact"><div><span class="section-no">04</span><h2>同桌商人</h2></div></div><div class="player-list">' + opponents.map(function (player) {
       var active = room.currentPlayerId === player.id;
-      return '<article class="player-line ' + (player.id === me.id ? 'me' : '') + ' ' + (active ? 'active' : '') + ' ' + (player.isBot ? 'bot' : '') + '"><span class="player-dot" style="--player:' + player.color + '"></span><div><strong>' + esc(player.nickname) + (player.isBot ? ' <i class="inline-bot-tag">人机</i>' : '') + (player.id === me.id ? ' · 你' : '') + '</strong><small>' + (player.id === room.harborMasterId ? '港务长 · ' : '') + player.shareCount + ' 股股票' + (player.mortgagedCount ? ' · ' + player.mortgagedCount + ' 股抵押' : '') + '</small></div><b>' + player.cash + '₱</b><span class="pawn-count">' + player.pawnsAvailable + ' 帮手</span></article>';
+      var pawns = Array.from({ length: player.pawnsTotal }, function (_, index) { return '<i class="' + (index < player.pawnsAvailable ? 'available' : 'used') + '"></i>'; }).join('');
+      return '<article class="player-card ' + (active ? 'active' : '') + ' ' + (player.isBot ? 'bot' : '') + '"><span class="player-portrait" style="--player:' + player.color + '">' + esc(player.nickname.slice(0, 1)) + '</span><div class="player-copy"><strong>' + esc(player.nickname) + (player.isBot ? ' <i class="inline-bot-tag">人机</i>' : '') + '</strong><small>' + (player.id === room.harborMasterId ? '港务长 · ' : '') + player.shareCount + ' 股股票' + (player.mortgagedCount ? ' · ' + player.mortgagedCount + ' 股抵押' : '') + '</small></div><b class="player-cash">' + player.cash + '<small>₱</small></b><span class="opponent-pawns" style="--player:' + player.color + '">' + pawns + '</span></article>';
     }).join('') + '</div></section>';
   }
 
@@ -442,7 +445,7 @@ window.MANILA_UI = (function () {
     var self = room.players.find(function (player) { return player.id === me.id; }) || me;
     renderHeader(room, self, handlers);
     var root = document.getElementById('game-root');
-    root.innerHTML = '<div class="manila-stage">' + settlementHtml(room, self) + scoreHtml(room) + '<div class="manila-opponents">' + playersHtml(room, self) + '</div><div class="manila-table-layout"><main class="manila-board-column">' + (room.boats.length ? boardHtml(room, self) : '<section class="box board"><div class="empty-state"><span>⛵</span><p>等待港务长布置本轮货船</p></div></section>') + '</main><aside class="manila-control-column">' + marketHtml(room) + currentActionHtml(room, self) + assetsHtml(room, self) + logChatHtml(room) + '</aside></div></div>';
+    root.innerHTML = '<div class="manila-stage">' + settlementHtml(room, self) + scoreHtml(room) + '<div class="manila-opponents">' + playersHtml(room, self) + '</div><div class="manila-table-layout"><main class="manila-board-column">' + (room.boats.length ? boardHtml(room, self) : '<section class="box board"><div class="empty-state"><span>⛵</span><p>等待港务长布置本轮货船</p></div></section>') + '</main><aside class="manila-control-column">' + marketHtml(room) + currentActionHtml(room, self) + logChatHtml(room) + '</aside></div><div class="manila-player-dock">' + assetsHtml(room, self) + '</div></div>';
     bindGame(root, room, self, handlers);
     syncRoomEvents(room);
   }

@@ -231,6 +231,218 @@ body {
 .manila-control-column .current-action { position: relative; top: auto; }
 .manila-control-column .log-chat { max-height: 260px; }
 
+/* Manila clarity pass: the interface itself is the board, never a translucent layer over artwork. */
+.manila-stage { max-width: 1760px; padding: 0 4px 4px; }
+.manila-opponents .players.box {
+  margin-bottom: 11px;
+  padding: 8px 14px;
+  border: 2px solid #654328;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #302118, #161210);
+  box-shadow: inset 0 0 0 1px rgba(228,188,125,.2), 0 8px 20px rgba(0,0,0,.34);
+}
+.manila-opponents .player-list { grid-template-columns: repeat(auto-fit,minmax(235px,1fr)); gap: 9px; }
+.manila-opponents .player-card {
+  min-width: 0;
+  min-height: 67px;
+  display: grid;
+  grid-template-columns: 52px minmax(0,1fr) auto;
+  grid-template-rows: 1fr auto;
+  align-items: center;
+  gap: 0 10px;
+  padding: 6px 12px 7px 7px;
+  color: #f0e2c8;
+  border: 1px solid #705337;
+  border-radius: 6px;
+  background: linear-gradient(105deg, rgba(255,255,255,.045), transparent 52%), #211914;
+}
+.manila-opponents .player-card.active { border-color: #efbe5f; box-shadow: inset 0 0 22px rgba(239,190,95,.12), 0 0 0 2px rgba(239,190,95,.16); }
+.player-portrait, .self-portrait {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff8e8;
+  font-family: "Noto Serif SC", serif;
+  background: radial-gradient(circle at 35% 25%, color-mix(in srgb,var(--player),#fff 32%), color-mix(in srgb,var(--player),#25140d 46%));
+  border: 3px solid #c49651;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.22), 0 3px 8px #0008;
+}
+.player-portrait { grid-row: 1 / 3; width: 50px; height: 50px; font-size: 20px; }
+.player-copy { min-width: 0; align-self: end; }
+.player-copy strong { display: block; overflow: hidden; color: #f4e7cf; font: 600 14px/1.25 "Noto Serif SC", serif; white-space: nowrap; text-overflow: ellipsis; }
+.player-copy small { display: block; margin-top: 3px; overflow: hidden; color: #aa9c89; font-size: 8px; white-space: nowrap; text-overflow: ellipsis; }
+.player-cash { align-self: end; color: #f2c85e; font-size: 24px; line-height: 1; }
+.player-cash small { margin-left: 2px; font-size: 10px; }
+.opponent-pawns { grid-column: 2 / 4; display: flex; align-items: end; gap: 4px; min-height: 16px; }
+.opponent-pawns i, .pawn-pieces i { position: relative; display: inline-block; width: 11px; height: 13px; border-radius: 6px 6px 3px 3px; background: var(--player); box-shadow: inset 1px 1px 2px rgba(255,255,255,.48), 0 2px 2px #0006; }
+.opponent-pawns i::before, .pawn-pieces i::before { content: ""; position: absolute; width: 7px; height: 7px; left: 2px; top: -5px; border-radius: 50%; background: inherit; box-shadow: inset 1px 1px 2px rgba(255,255,255,.46); }
+.opponent-pawns i.used, .pawn-pieces i.used { filter: grayscale(1); opacity: .3; }
+
+.manila-table-layout { grid-template-columns: minmax(800px,1fr) 365px; gap: 12px; }
+.manila-board-column .board {
+  overflow: hidden;
+  padding: 15px;
+  color: #302317;
+  border: 11px solid #4d2b19;
+  border-radius: 10px;
+  background:
+    radial-gradient(ellipse at 30% 16%, rgba(255,255,255,.22), transparent 25%),
+    repeating-radial-gradient(ellipse at 55% 60%, rgba(255,255,255,.11) 0 1px, transparent 2px 25px),
+    linear-gradient(155deg,#79bdb5,#3b8d8a 52%,#27706f);
+  box-shadow: inset 0 0 0 2px #b37b43, inset 0 0 50px rgba(12,57,58,.34), 0 16px 34px rgba(0,0,0,.4);
+}
+.manila-board-column .board::before { display: none; }
+.manila-board-column .board > .section-heading { margin-bottom: 10px; padding: 2px 7px 10px; color: #fff0d0; border-bottom: 1px solid rgba(255,240,208,.48); text-shadow: 0 2px 4px #19514f; }
+.manila-board-column .board > .section-heading h2 { font-size: 20px; letter-spacing: .08em; }
+.manila-board-column .board > .section-heading small { color: #f6e6c9; font-size: 10px; }
+.manila-board-column .boat-stack { gap: 9px; }
+.manila-board-column .boat-lane {
+  display: grid;
+  grid-template-columns: 145px minmax(0,1fr);
+  grid-template-areas: "cargo route" "crew crew";
+  margin: 0;
+  overflow: hidden;
+  border: 2px solid rgba(79,48,26,.74);
+  border-radius: 7px;
+  background: #e6d3aa;
+  box-shadow: 0 5px 10px rgba(10,49,49,.28);
+}
+.manila-board-column .boat-info {
+  grid-area: cargo;
+  align-items: center;
+  padding: 9px 10px;
+  color: #302217;
+  border: 0;
+  border-right: 1px solid #a78255;
+  background: linear-gradient(115deg,#f2e1bd,#d2b786);
+}
+.manila-board-column .cargo-symbol { width: 46px; height: 42px; flex: 0 0 auto; overflow: visible; color: transparent; font-size: 0; border: 0; border-radius: 0; background-position: center; background-repeat: no-repeat; background-size: contain; filter: drop-shadow(0 3px 2px rgba(54,35,18,.38)); }
+.ware-ginseng .cargo-symbol, .ware-ginseng .market-icon { background-image: url("../assets/manila-ui/cargo-ginseng.png"); }
+.ware-nutmeg .cargo-symbol, .ware-nutmeg .market-icon { background-image: url("../assets/manila-ui/cargo-nutmeg.png"); }
+.ware-silk .cargo-symbol, .ware-silk .market-icon { background-image: url("../assets/manila-ui/cargo-silk.png"); }
+.ware-jade .cargo-symbol, .ware-jade .market-icon { background-image: url("../assets/manila-ui/cargo-jade.png"); }
+.manila-board-column .boat-info small { color: #796548; font-size: 7px; }
+.manila-board-column .boat-info strong { font-size: 13px; }
+.manila-board-column .boat-info > b { margin-left: 0; color: #8d3f2c; font-size: 9px; white-space: nowrap; }
+.manila-board-column .route {
+  grid-area: route;
+  grid-template-columns: 34px repeat(14,minmax(23px,1fr)) 68px;
+  min-height: 64px;
+  overflow: visible;
+  color: #f7ecd1;
+  background: linear-gradient(180deg,rgba(35,129,129,.7),rgba(22,102,104,.82));
+}
+.manila-board-column .route-label { writing-mode: vertical-rl; transform: rotate(180deg); color: #cce2d8; background: rgba(8,56,57,.33); }
+.manila-board-column .port-label { writing-mode: initial; transform: none; color: #3b291a; font-weight: 700; background: linear-gradient(110deg,#ead7ae,#cba878); }
+.manila-board-column .route-cell { align-items: center; padding: 0; border-left: 1px dashed rgba(255,255,255,.22); }
+.manila-board-column .route-cell small { width: 23px; height: 23px; color: #46321e; font-size: 9px; opacity: 1; border: 1px solid rgba(101,76,43,.48); background: #eadbb8; box-shadow: 0 2px 4px rgba(0,0,0,.25); }
+.manila-board-column .route-cell.danger-cell { background: rgba(131,46,31,.24); }
+.manila-board-column .route-cell.danger-cell::before { top: 3px; color: #5d211a; font-size: 11px; opacity: .9; }
+.manila-board-column .boat-marker { top: 43%; width: 78px; height: 64px; color: transparent; font-size: 0; pointer-events: none; background-position: center; background-repeat: no-repeat; background-size: contain; filter: drop-shadow(0 7px 3px rgba(0,0,0,.5)); }
+.manila-board-column .boat-lane.ware-ginseng .boat-marker { background-image: url("../assets/manila-ui/ship-ginseng.png"); }
+.manila-board-column .boat-lane.ware-nutmeg .boat-marker { background-image: url("../assets/manila-ui/ship-ginseng.png"); filter: sepia(.42) saturate(.82) drop-shadow(0 7px 3px rgba(0,0,0,.5)); }
+.manila-board-column .boat-lane.ware-silk .boat-marker { background-image: url("../assets/manila-ui/ship-silk.png"); }
+.manila-board-column .boat-lane.ware-jade .boat-marker { background-image: url("../assets/manila-ui/ship-jade.png"); }
+.manila-board-column .boat-bottom { grid-area: crew; min-height: 42px; padding: 6px 10px; color: #35271b; border-top: 1px solid #b99e73; background: linear-gradient(90deg,#ead9b4,#d7bd8e); }
+.manila-board-column .crew-slot { min-width: 58px; height: 29px; border-color: #9b7c55; background: rgba(255,255,255,.27); }
+.manila-board-column .crew-slot.clickable { background: #fff0ca; }
+.manila-board-column .dock-grid { gap: 9px; margin-top: 10px; }
+.manila-board-column .dock-zone { padding: 9px; border: 2px solid #765237; border-radius: 6px; background: linear-gradient(145deg,#e7d4a9,#c7ab7a); box-shadow: 0 5px 9px rgba(0,0,0,.2); }
+.manila-board-column .dock-zone.shipyard { background: linear-gradient(145deg,#d7c29d,#b99b71); }
+.manila-board-column .dock-title { margin-bottom: 6px; }
+.manila-board-column .dock-slot { min-height: 78px; border-color: #a2875e; background: rgba(255,248,224,.55); }
+.manila-board-column .special-grid { gap: 9px; margin-top: 9px; }
+.manila-board-column .special-card { min-height: 118px; grid-template-columns: 82px minmax(0,1fr); padding: 9px; border: 2px solid #67442a; background: linear-gradient(135deg,#dfc89d,#c9ad7e); }
+.manila-board-column .special-art { width: 78px; min-height: 72px; color: transparent; font-size: 0; border: 0; background-position: center; background-repeat: no-repeat; background-size: contain; filter: drop-shadow(0 4px 3px rgba(49,31,16,.3)); }
+.manila-board-column .pirate-card .special-art { background-image: url("../assets/manila-ui/special-pirate.png"); }
+.manila-board-column .pilot-card .special-art { background-image: url("../assets/manila-ui/special-pilot.png"); }
+.manila-board-column .insurance-card .special-art { background-image: url("../assets/manila-ui/special-insurance.png"); }
+.manila-board-column .insurance-card { background: linear-gradient(135deg,#d9d5b2,#b9b58e); }
+
+.manila-control-column { gap: 10px; }
+.manila-control-column > .box { padding: 13px; border: 6px solid #4c2b1a; border-radius: 7px; }
+.manila-control-column .market { color: #f0dfc2; background: linear-gradient(145deg,#2d2018,#161311); box-shadow: inset 0 0 0 1px #87613e,0 9px 18px rgba(0,0,0,.3); }
+.manila-control-column .market .section-heading { margin-bottom: 8px; padding: 1px 3px 9px; border-color: #6c5942; }
+.manila-control-column .market .section-heading h2 { color: #f2dfbd; }
+.manila-control-column .market .section-heading small { color: #a89a87; }
+.manila-control-column .market-grid { gap: 6px; }
+.manila-control-column .market-card {
+  min-height: 70px;
+  grid-template-columns: 40px 70px 1fr 38px;
+  grid-template-rows: 36px 23px;
+  gap: 0 8px;
+  padding: 6px 7px;
+  color: #f1e2c7;
+  border: 1px solid #6c5840;
+  background: linear-gradient(90deg,rgba(255,255,255,.035),transparent),#211a15;
+}
+.manila-control-column .market-icon { grid-row: 1 / 3; width: 38px; height: 38px; align-self: center; color: transparent; font-size: 0; border: 0; border-radius: 0; background-color: transparent; background-position: center; background-repeat: no-repeat; background-size: contain; filter: drop-shadow(0 3px 2px #0008); box-shadow: none; }
+.manila-control-column .market-name { grid-column: 2; grid-row: 1; align-self: center; }
+.manila-control-column .market-name span { color: #9f927f; }
+.manila-control-column .market-name strong { color: #f1dfc0; font-size: 13px; }
+.manila-control-column .market-card > b { grid-column: 4; grid-row: 1; align-self: center; color: #f3c85e; font-size: 23px; }
+.manila-control-column .market-card > em { display: block; position: static; grid-column: 4; grid-row: 2; align-self: center; color: #948673; font-size: 7px; text-align: right; }
+.manila-control-column .market-track { grid-column: 2 / 4; grid-row: 2; display: grid; grid-template-columns: repeat(5,1fr); gap: 2px; }
+.manila-control-column .market-track i { position: relative; height: 22px; display: grid; place-items: center; font-style: normal; background: none; }
+.manila-control-column .market-track i::after { content: ""; position: absolute; left: 50%; right: -50%; top: 7px; height: 1px; background: #665840; }
+.manila-control-column .market-track i:last-child::after { display: none; }
+.manila-control-column .market-track i span { position: relative; z-index: 1; width: 7px; height: 7px; border-radius: 50%; background: #7c6d58; }
+.manila-control-column .market-track i small { color: #9e927e; font-size: 7px; }
+.manila-control-column .market-track i.current span { width: 13px; height: 13px; background: var(--ware); border: 2px solid #f3e0bd; box-shadow: 0 0 8px var(--ware); }
+.manila-control-column .market-track i.current small { color: #f2ddba; font-weight: 700; }
+.manila-control-column .action-card { color: #35271b; border-color: #53301d; border-top-width: 6px; background: linear-gradient(145deg,#f0dfba,#d6bc8b); }
+.manila-control-column .action-card .section-heading { border-color: #b29467; }
+.manila-control-column .chronicle { color: #eadbc2; background: linear-gradient(#292019,#171411); }
+.manila-control-column .chronicle .log-tabs { border-color: #5c4b3b; }
+.manila-control-column .chronicle .log-tabs button { color: #a99a85; }
+.manila-control-column .chronicle .log-tabs button.active { color: #e9c16e; border-color: #e9c16e; }
+.manila-control-column .chronicle .log-line { border-color: #4e4135; }
+.manila-control-column .chronicle .log-line p { color: #d8c9b2; }
+.manila-control-column .chronicle .chat-form { background: #1a1613; }
+
+.manila-player-dock { margin-top: 11px; }
+.manila-player-dock .assets.box {
+  min-height: 122px;
+  display: grid;
+  grid-template-columns: 300px 205px minmax(420px,1fr);
+  gap: 16px;
+  align-items: center;
+  padding: 12px 16px;
+  color: #efdfc5;
+  border: 3px solid #684329;
+  border-radius: 8px;
+  background: linear-gradient(180deg,#342117,#1c1511);
+  box-shadow: inset 0 0 0 1px rgba(225,179,108,.25),0 10px 24px rgba(0,0,0,.38);
+}
+.self-ledger { min-width: 0; display: grid; grid-template-columns: 72px 1fr auto; grid-template-rows: 1fr auto; align-items: center; gap: 0 11px; padding-right: 15px; border-right: 1px solid #63472f; }
+.self-portrait { grid-row: 1 / 3; width: 68px; height: 68px; font-size: 26px; }
+.self-ledger > div { min-width: 0; }
+.self-ledger > div small { display: block; color: #b7a48a; font-size: 7px; letter-spacing: .2em; }
+.self-ledger > div strong { display: block; font: 600 18px/1.3 "Noto Serif SC",serif; }
+.self-ledger > div em { display: block; overflow: hidden; color: #a99a87; font-size: 9px; font-style: normal; white-space: nowrap; text-overflow: ellipsis; }
+.self-ledger > b { color: #f1c85d; font-size: 34px; }
+.self-ledger > b small { margin-left: 2px; font-size: 12px; }
+.self-ledger > span:last-child { grid-column: 2 / 4; color: #aa9a84; font-size: 9px; }
+.self-pawn-bank { display: grid; justify-items: center; gap: 7px; padding-right: 15px; border-right: 1px solid #63472f; }
+.self-pawn-bank > span, .asset-label { color: #b9a68c; font-size: 8px; font-weight: 700; letter-spacing: .13em; }
+.pawn-pieces { min-height: 34px; display: flex; align-items: end; gap: 11px; padding-top: 6px; }
+.pawn-pieces i { width: 20px; height: 27px; border-radius: 10px 10px 5px 5px; }
+.pawn-pieces i::before { width: 13px; height: 13px; left: 3.5px; top: -8px; }
+.self-pawn-bank strong { color: #ead8ba; font-size: 10px; }
+.self-share-bank { min-width: 0; }
+.self-share-bank .share-list { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 7px; margin-top: 7px; }
+.self-share-bank .share-row { min-width: 0; min-height: 58px; gap: 7px; padding: 5px 7px; border: 1px solid #69543b; border-radius: 4px; background: rgba(255,255,255,.035); }
+.self-share-bank .share-row::before { content: ""; width: 50px; height: 45px; flex: 0 0 50px; background-position: center; background-repeat: no-repeat; background-size: contain; filter: drop-shadow(0 3px 2px rgba(0,0,0,.36)); }
+.self-share-bank .share-row.ware-ginseng::before { background-image: url("../assets/manila-ui/share-ginseng.png"); }
+.self-share-bank .share-row.ware-nutmeg::before { background-image: url("../assets/manila-ui/share-nutmeg.png"); }
+.self-share-bank .share-row.ware-silk::before { background-image: url("../assets/manila-ui/share-silk.png"); }
+.self-share-bank .share-row.ware-jade::before { background-image: url("../assets/manila-ui/share-jade.png"); }
+.self-share-bank .share-gem { display: none; }
+.self-share-bank .share-row strong { color: #f0dfc1; font-size: 11px; }
+.self-share-bank .share-row small { color: #aa9a83; font-size: 8px; }
+.self-share-bank .share-actions button { color: #f0d6a7; border-color: #806441; background: #35261b; }
+.self-share-bank .loan-note { margin-top: 6px; color: #9f907b; }
+
 /* Splendor table */
 .splendor-table { max-width: 1720px; margin: 0 auto; padding: 12px 18px 22px; color: #f2e4ca; border: 11px solid #4a2819; border-radius: 14px; background: radial-gradient(circle at 50% 0, rgba(255,255,255,.06), transparent 31%), repeating-linear-gradient(95deg, rgba(255,255,255,.015) 0 1px, transparent 2px 8px), #0c493b; box-shadow: inset 0 0 0 2px #b27a42, inset 0 0 65px rgba(0,0,0,.35), 0 20px 42px rgba(0,0,0,.45); }
 .splendor-table .spl-panel, .splendor-table .spl-side-card { color: #30271f; border: 3px solid #4e2d1d; background: #e7d6b5; box-shadow: 0 8px 16px rgba(0,0,0,.3); }
@@ -264,7 +476,6 @@ body {
 .spl-bank-rail .spl-bank { margin: 0; padding: 12px; }
 .spl-bank-rail .spl-bank-row { grid-template-columns: repeat(2,1fr); gap: 8px; }
 .spl-bank-rail .spl-bank-stack { min-height: 95px; color: #eee0c8; border: 4px solid #4d2b1b; background: linear-gradient(#3c2a21,#1b1714); box-shadow: inset 0 0 0 1px #8c6546; }
-.spl-bank-rail .spl-chip { border-width: 7px; box-shadow: inset 0 0 10px rgba(255,255,255,.65), 0 5px 0 currentColor, 0 10px 0 currentColor, 0 13px 9px rgba(0,0,0,.48); }
 .spl-bank-rail .spl-self, .spl-bank-rail .spl-history { margin: 0; }
 .spl-bank-rail .spl-reserved { grid-template-columns: repeat(2,1fr); }
 .spl-bank-rail .spl-reserved .spl-card { min-width: 0; min-height: 150px; }
@@ -277,6 +488,8 @@ body {
   .manila-control-column, .spl-bank-rail { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .manila-control-column .market, .spl-bank-rail .spl-bank { grid-column: 1 / -1; }
   .spl-bank-rail .spl-bank-row { grid-template-columns: repeat(6,1fr); }
+  .manila-player-dock .assets.box { grid-template-columns: 260px 180px minmax(0,1fr); }
+  .self-share-bank .share-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 
 @media (max-width: 760px) {
@@ -315,6 +528,15 @@ body {
   .manila-control-column, .spl-bank-rail { grid-template-columns: 1fr; }
   .manila-control-column .market, .spl-bank-rail .spl-bank { grid-column: auto; }
   .spl-bank-rail .spl-bank-row { grid-template-columns: repeat(3,1fr); }
+  .manila-player-dock .assets.box { grid-template-columns: 235px 145px minmax(0,1fr); gap: 10px; padding-inline: 10px; }
+  .self-ledger { grid-template-columns: 58px 1fr; }
+  .self-portrait { width: 54px; height: 54px; }
+  .self-ledger > b { grid-column: 2; font-size: 27px; }
+  .self-ledger > span:last-child { display: none; }
+  .self-pawn-bank { padding-right: 9px; }
+  .pawn-pieces { gap: 6px; }
+  .pawn-pieces i { width: 16px; height: 22px; }
+  .pawn-pieces i::before { width: 11px; height: 11px; left: 2.5px; }
 }
 
 /* Generated photographic plates: the live DOM remains the interaction layer. */
@@ -336,23 +558,6 @@ body {
   background-position: center;
 }
 .manila-scene > *, .manila-scene::before, .splendor-scene > * { display: none; }
-
-.manila-board-column .board {
-  position: relative;
-  background-image: linear-gradient(rgba(255,255,255,.05), rgba(17,71,68,.08)), url("../assets/table-club/manila-board.jpg");
-  background-size: cover;
-  background-position: center;
-}
-.manila-board-column .board::before {
-  content: "";
-  position: absolute;
-  inset: 11px;
-  pointer-events: none;
-  border: 1px solid rgba(248,220,165,.42);
-  box-shadow: inset 0 0 44px rgba(21,57,50,.25);
-}
-.manila-board-column .board > * { position: relative; z-index: 1; }
-.manila-board-column .boat-lane { background: rgba(231,219,189,.21); backdrop-filter: blur(1.4px); }
 
 .splendor-table .spl-card-art,
 .splendor-table .bonus-white .spl-card-art,
@@ -389,4 +594,67 @@ body {
   .welcome-form input { height: 56px; }
   .welcome-form small { margin-bottom: 20px; }
   .seat-button { height: 59px; }
+}
+
+/* Splendor 3D gem assets: images provide the form, material, color and lighting. */
+.splendor-table .spl-card-gem,
+.splendor-table .spl-card-gem.white {
+  width: 48px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  color: inherit;
+  background: transparent;
+  box-shadow: none;
+}
+.spl-card-gem-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  filter: drop-shadow(0 3px 2px rgba(40,22,12,.38));
+}
+
+.spl-bank-rail .spl-bank-row { grid-template-columns: 1fr; gap: 5px; }
+.spl-bank-rail .spl-bank-stack {
+  min-height: 82px;
+  grid-template-columns: 92px 1fr 40px;
+  grid-template-rows: 1fr 1fr;
+  gap: 0 10px;
+  padding: 4px 13px 6px 4px;
+  overflow: visible;
+  border: 2px solid #5e3a25;
+  background: linear-gradient(100deg,#33231b,#171310 74%);
+  box-shadow: inset 0 0 0 1px rgba(255,220,166,.14), 0 3px 7px rgba(0,0,0,.2);
+}
+.spl-token-stack {
+  grid-row: 1 / 3;
+  width: 90px;
+  height: 76px;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+  filter: drop-shadow(0 5px 3px rgba(0,0,0,.42));
+}
+.spl-bank-rail .spl-bank-stack > span { align-self: end; color: #f2e4cc; font-size: 12px; font-weight: 700; letter-spacing: .08em; }
+.spl-bank-rail .spl-bank-stack > strong { grid-column: 3; grid-row: 1 / 3; align-self: center; color: #fff5df; font-size: 25px; text-shadow: 0 2px 4px #000; }
+.spl-bank-rail .spl-bank-stack > button { align-self: start; padding: 2px 7px; color: #f5ddb8; border: 1px solid #8d6c49; border-radius: 8px; background: rgba(0,0,0,.3); }
+.spl-bank-rail .spl-bank-stack.selectable:hover,
+.spl-bank-rail .spl-bank-stack.selected { border-color: #e4bb72; box-shadow: inset 0 0 16px rgba(222,178,97,.16), 0 0 0 2px rgba(228,187,114,.32); }
+
+.spl-held-tokens { display: flex; align-items: flex-end; gap: 4px; }
+.spl-held-token { position: relative; width: 54px; min-height: 57px; display: grid; place-items: center; }
+.spl-held-token-image { width: 54px; height: 51px; object-fit: contain; filter: drop-shadow(0 3px 2px rgba(0,0,0,.35)); }
+.spl-held-token > b { position: absolute; right: 0; bottom: 0; display: grid; place-items: center; min-width: 19px; height: 19px; padding: 0 4px; color: #fff7e6; font-size: 10px; border: 1px solid #d5b87e; border-radius: 10px; background: #201812; box-shadow: 0 2px 4px rgba(0,0,0,.35); }
+
+@media (max-width: 1180px) {
+  .spl-bank-rail .spl-bank-row { grid-template-columns: repeat(3,1fr); }
+  .spl-bank-rail .spl-bank-stack { grid-template-columns: 72px 1fr 34px; }
+  .spl-token-stack { width: 70px; height: 70px; }
+}
+@media (max-width: 760px) {
+  .spl-bank-rail .spl-bank-row { grid-template-columns: repeat(2,1fr); }
 }

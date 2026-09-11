@@ -19,8 +19,16 @@ window.SPLENDOR_UI = (function () {
   function total(tokens) { return TOKENS.reduce(function (sum, color) { return sum + Number(tokens[color] || 0); }, 0); }
   function nickname(room, pid) { var p = room.players.find(function (item) { return item.id === pid; }); return p ? p.nickname : '—'; }
   function time(ts) { var d = new Date(ts); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  function gemImage(kind, color, className) {
+    return '<img class="' + esc(className || '') + '" src="assets/table-club/gems/' + kind + '-' + color + '.png" alt="' + esc(META[color].name) + '" draggable="false">';
+  }
 
   function tokenPips(values, className) {
+    if (className === 'held') {
+      return TOKENS.filter(function (color) { return values && values[color]; }).map(function (color) {
+        return '<span class="spl-held-token ' + color + '" title="' + META[color].name + ' ' + values[color] + ' 枚">' + gemImage('stack', color, 'spl-held-token-image') + '<b>' + values[color] + '</b></span>';
+      }).join('') || '<span class="spl-none">—</span>';
+    }
     return TOKENS.filter(function (color) { return values && values[color]; }).map(function (color) {
       return '<span class="spl-pip ' + color + ' ' + (className || '') + '" title="' + META[color].name + '">' + META[color].icon + '<b>' + values[color] + '</b></span>';
     }).join('') || '<span class="spl-none">—</span>';
@@ -106,14 +114,14 @@ window.SPLENDOR_UI = (function () {
     var cost = tokenPips(card.cost, 'cost');
     var affordable = self && canBuy(self, card);
     var canReserve = self && self.reservedCount < 3;
-    return '<article class="spl-card bonus-' + card.bonus + '" data-card-tier="' + card.tier + '"><header><span class="spl-card-points">' + (card.points || '') + '</span><span class="spl-card-gem ' + card.bonus + '">' + META[card.bonus].icon + '</span></header><div class="spl-card-art"><i></i><i></i><i></i></div><div class="spl-card-cost">' + cost + '</div>' + (active ? '<footer><button class="spl-card-action buy" data-buy="' + esc(card.id) + '" type="button" ' + (affordable ? '' : 'disabled title="宝石不足"') + '>购买</button>' + (!reserved && canReserve ? '<button class="spl-card-action reserve" data-reserve="' + esc(card.id) + '" data-tier="' + card.tier + '" type="button">预留</button>' : '') + '</footer>' : '') + '</article>';
+    return '<article class="spl-card bonus-' + card.bonus + '" data-card-tier="' + card.tier + '"><header><span class="spl-card-points">' + (card.points || '') + '</span><span class="spl-card-gem" title="永久提供 1 点' + META[card.bonus].name + '折扣">' + gemImage('gem', card.bonus, 'spl-card-gem-image') + '</span></header><div class="spl-card-art"><i></i><i></i><i></i></div><div class="spl-card-cost">' + cost + '</div>' + (active ? '<footer><button class="spl-card-action buy" data-buy="' + esc(card.id) + '" type="button" ' + (affordable ? '' : 'disabled title="宝石不足"') + '>购买</button>' + (!reserved && canReserve ? '<button class="spl-card-action reserve" data-reserve="' + esc(card.id) + '" data-tier="' + card.tier + '" type="button">预留</button>' : '') + '</footer>' : '') + '</article>';
   }
 
   function bankHtml(room, self, active) {
     var availableCount = COLORS.filter(function (color) { return room.bank[color] > 0; }).length;
     return '<section class="spl-bank spl-panel"><div class="spl-section-title"><div><span>01</span><h2>宝石银行</h2></div><small>选择 ' + Math.min(3, availableCount) + ' 种不同宝石，或拿 2 枚同色</small></div><div class="spl-bank-row">' + TOKENS.map(function (color) {
       var ordinary = color !== 'gold';
-      return '<article class="spl-bank-stack ' + color + ' ' + (active && ordinary && room.bank[color] > 0 ? 'selectable' : '') + '" ' + (active && ordinary && room.bank[color] > 0 ? 'data-gem="' + color + '"' : '') + '><div class="spl-chip">' + META[color].icon + '</div><span>' + META[color].name + '</span><strong>' + room.bank[color] + '</strong>' + (active && ordinary && room.bank[color] >= 4 ? '<button data-take-same="' + color + '" type="button">拿 2 枚</button>' : '') + '</article>';
+      return '<article class="spl-bank-stack ' + color + ' ' + (active && ordinary && room.bank[color] > 0 ? 'selectable' : '') + '" ' + (active && ordinary && room.bank[color] > 0 ? 'data-gem="' + color + '"' : '') + '>' + gemImage('stack', color, 'spl-token-stack') + '<span>' + META[color].name + '</span><strong>' + room.bank[color] + '</strong>' + (active && ordinary && room.bank[color] >= 4 ? '<button data-take-same="' + color + '" type="button">拿 2 枚</button>' : '') + '</article>';
     }).join('') + '</div>' + (active ? '<div class="spl-bank-controls"><span>已选 <b data-selected-count>0</b> / ' + Math.min(3, availableCount) + '</span><button class="btn primary small" data-take-different disabled type="button">拿取选中宝石</button></div>' : '') + '</section>';
   }
 
@@ -124,7 +132,7 @@ window.SPLENDOR_UI = (function () {
   }
 
   function selfHtml(self, active) {
-    return '<section class="spl-self spl-side-card"><div class="spl-side-heading"><span>你的珠宝行</span><strong>' + self.points + '<small> 声望</small></strong></div><h3>永久折扣</h3><div class="spl-summary-pips">' + tokenPips(self.bonuses, 'bonus') + '</div><h3>实体筹码 <small>' + total(self.tokens) + ' / 10</small></h3><div class="spl-summary-pips">' + tokenPips(self.tokens) + '</div><h3>预留发展卡 <small>' + self.reservedCount + ' / 3</small></h3><div class="spl-reserved">' + ((self.reserved || []).length ? self.reserved.map(function (card) { return cardHtml(card, active, true, self); }).join('') : '<p>暂无预留卡</p>') + '</div></section>';
+    return '<section class="spl-self spl-side-card"><div class="spl-side-heading"><span>你的珠宝行</span><strong>' + self.points + '<small> 声望</small></strong></div><h3>永久折扣</h3><div class="spl-summary-pips">' + tokenPips(self.bonuses, 'bonus') + '</div><h3>实体筹码 <small>' + total(self.tokens) + ' / 10</small></h3><div class="spl-summary-pips spl-held-tokens">' + tokenPips(self.tokens, 'held') + '</div><h3>预留发展卡 <small>' + self.reservedCount + ' / 3</small></h3><div class="spl-reserved">' + ((self.reserved || []).length ? self.reserved.map(function (card) { return cardHtml(card, active, true, self); }).join('') : '<p>暂无预留卡</p>') + '</div></section>';
   }
 
   function playersHtml(room, self) {
