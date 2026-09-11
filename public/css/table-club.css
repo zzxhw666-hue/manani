@@ -339,10 +339,13 @@ body {
 .manila-board-column .route-cell.danger-cell { background: rgba(131,46,31,.24); }
 .manila-board-column .route-cell.danger-cell::before { top: 3px; color: #5d211a; font-size: 11px; opacity: .9; }
 .manila-board-column .boat-marker { top: 43%; width: 78px; height: 64px; color: transparent; font-size: 0; pointer-events: none; background-position: center; background-repeat: no-repeat; background-size: contain; filter: drop-shadow(0 7px 3px rgba(0,0,0,.5)); }
-.manila-board-column .boat-lane.ware-ginseng .boat-marker { background-image: url("../assets/manila-ui/ship-ginseng.png"); }
-.manila-board-column .boat-lane.ware-nutmeg .boat-marker { background-image: url("../assets/manila-ui/ship-ginseng.png"); filter: sepia(.42) saturate(.82) drop-shadow(0 7px 3px rgba(0,0,0,.5)); }
-.manila-board-column .boat-lane.ware-silk .boat-marker { background-image: url("../assets/manila-ui/ship-silk.png"); }
-.manila-board-column .boat-lane.ware-jade .boat-marker { background-image: url("../assets/manila-ui/ship-jade.png"); }
+.manila-board-column .boat-lane.ware-ginseng .boat-marker,
+.manila-board-column .boat-lane.ware-nutmeg .boat-marker { background-image: url("../assets/manila-ui/ship-ginseng-empty.png"); }
+.manila-board-column .boat-lane.ware-silk .boat-marker { background-image: url("../assets/manila-ui/ship-silk-empty.png"); }
+.manila-board-column .boat-lane.ware-jade .boat-marker { background-image: url("../assets/manila-ui/ship-jade-empty.png"); }
+.manila-board-column .ship-crew { position: absolute; z-index: 2; left: 21px; right: 8px; bottom: 13px; min-height: 12px; display: flex; justify-content: center; align-items: end; gap: 2px; }
+.manila-board-column .onboard-pawn { position: relative; width: 7px; height: 9px; flex: 0 0 7px; border-radius: 4px 4px 2px 2px; background: var(--player); border: 1px solid color-mix(in srgb,var(--player),#24160f 28%); box-shadow: inset 1px 1px 1px rgba(255,255,255,.48),0 2px 2px rgba(0,0,0,.42); }
+.manila-board-column .onboard-pawn::before { content: ""; position: absolute; left: 1px; top: -4px; width: 5px; height: 5px; border-radius: 50%; background: var(--player); box-shadow: inset 1px 1px 1px rgba(255,255,255,.46); }
 .manila-board-column .boat-bottom { grid-area: crew; min-height: 42px; padding: 6px 10px; color: #35271b; border-top: 1px solid #b99e73; background: linear-gradient(90deg,#ead9b4,#d7bd8e); }
 .manila-board-column .crew-slot { min-width: 58px; height: 29px; border-color: #9b7c55; background: rgba(255,255,255,.27); }
 .manila-board-column .crew-slot.clickable { background: #fff0ca; }

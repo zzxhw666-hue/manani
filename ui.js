@@ -196,9 +196,12 @@ window.MANILA_UI = (function () {
 
   function boatHtml(room, boat, activePlacement) {
     var data = D.wares[boat.ware];
+    var onboardCrew = boat.crew.map(function (item, index) {
+      return '<span class="onboard-pawn" style="--player:' + playerColor(room, item.pid) + ';--crew-order:' + index + '" title="' + esc(nickname(room, item.pid)) + '"></span>';
+    }).join('');
     var cells = Array.from({ length: 14 }, function (_, position) {
       var boatHere = boat.status === 'sea' && boat.position === position;
-      return '<span class="route-cell ' + (position === 13 ? 'danger-cell' : '') + '" data-pos="' + position + '">' + (boatHere ? '<i class="boat-marker" style="--ware:' + data.color + '">⛵</i>' : '') + '<small>' + position + '</small></span>';
+      return '<span class="route-cell ' + (position === 13 ? 'danger-cell' : '') + '" data-pos="' + position + '">' + (boatHere ? '<i class="boat-marker" style="--ware:' + data.color + '"><span class="ship-crew">' + onboardCrew + '</span></i>' : '') + '<small>' + position + '</small></span>';
     }).join('');
     var crew = data.crewCosts.map(function (cost, index) {
       var item = boat.crew[index];
