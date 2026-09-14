@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>马尼拉 · 3D 桌面 Demo</title>
+  <link rel="stylesheet" href="css/manila-3d-demo.css">
+</head>
+<body>
+  <div id="scene" aria-label="马尼拉三维桌面"></div>
+  <header>
+    <a href="/">〈 <span>返回大厅</span></a>
+    <div class="brand"><h1>马 尼 拉</h1><span>MANILA</span></div>
+    <nav><button id="camera">俯瞰桌面</button><button id="reset" aria-label="重置演示">↺ 重新布桌</button></nav>
+  </header>
+  <div class="edition"><span>TABLE CLUB</span><i></i>三维桌面 · 视觉 Demo</div>
+  <aside class="action-panel">
+    <div class="action-kicker">HARBOR MASTER</div>
+    <h2 id="phase">第 2 次航行</h2>
+    <p id="status" role="status" aria-live="polite">港务长 · 你</p>
+    <button id="roll">掷骰航行 <span>→</span></button>
+    <small id="hint">点击货船查看船员 · 拖动微调视角</small>
+  </aside>
+  <div id="inspection" role="status" aria-live="polite"></div>
+  <footer><span>暖灯已亮，等你开船。</span><span>独立演示 · 不影响联机对局</span></footer>
+  <div id="loading"><div>MANILA</div><p>正在铺开海图，点亮港口…</p></div>
+  <script type="module">
+    import('./js/manila-3d-demo.js').catch(error => {
+      console.error(error);
+      document.querySelector('#loading p').textContent = '桌面加载失败，请检查浏览器的 WebGL 支持后刷新。';
+    });
+  </script>
+</body>
+</html>

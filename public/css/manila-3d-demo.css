@@ -1,0 +1,34 @@
+:root { color-scheme: dark; font-family: 'Noto Serif SC','Songti SC',serif; color: #f3e3bf; background: #21140c; }
+* { box-sizing: border-box; }
+body { margin: 0; overflow: hidden; }
+#scene { position: fixed; inset: 0; }
+#scene canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+#scene::after { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at 46% 42%,transparent 46%,#150b0659 100%); box-shadow: inset 0 0 70px #160c0630; }
+header { position: fixed; z-index: 3; top: 0; left: 0; right: 0; height: 68px; display: flex; align-items: center; justify-content: space-between; padding: 0 30px; border-bottom: 1px solid #ae814942; background: linear-gradient(#120c09ed,#1d120bba); box-shadow: 0 9px 32px #0005; }
+header a { color: #ecd7b4; text-decoration: none; font-size: 16px; letter-spacing: .08em; }
+.brand { position: absolute; left: 50%; transform: translateX(-50%); text-align: center; text-shadow: 0 2px 10px #d7ab4150; }
+h1 { font-size: 28px; margin: 0; font-weight: 500; line-height: 1.2; }
+.brand > span { font-family: Georgia,serif; font-size: 11px; letter-spacing: .27em; }
+nav { display: flex; gap: 9px; }
+button { font: inherit; cursor: pointer; }
+nav button { background: #25180d90; border: 1px solid #b68d4c60; border-radius: 5px; color: #ead6b2; padding: 8px 12px; font-size: 12px; }
+button:hover { filter: brightness(1.16); }
+button:focus-visible,a:focus-visible { outline: 2px solid #f1c970; outline-offset: 4px; }
+.edition { position: fixed; top: 82px; left: 30px; display: flex; align-items: center; gap: 10px; font-size: 10px; color: #cfba98; letter-spacing: .14em; opacity: .8; pointer-events: none; }
+.edition > span { color: #d1ab65; font-family: Georgia,serif; letter-spacing: .22em; }
+.edition i { width: 3px; height: 3px; background: #d1ab65; border-radius: 50%; }
+.action-panel { position: fixed; z-index: 2; right: 5.3%; top: 60%; width: 18%; text-align: center; padding: 12px 9px 9px; background: linear-gradient(130deg,#ebd2a4f7,#c7a06ded); border: 2px solid #5e361d; outline: 1px solid #bc9250; border-radius: 5px; box-shadow: 0 8px 18px #0007,inset 0 0 20px #67472845; color: #362517; }
+.action-kicker { font: 8px Georgia,serif; letter-spacing: .25em; color: #846443; }
+h2 { font-size: clamp(15px,1.5vw,25px); font-weight: 700; margin: 5px 0; letter-spacing: .1em; }
+.action-panel p { font-size: 11px; margin: 4px 0 12px; min-height: 16px; }
+#roll { width: 100%; color: #30200f; background: linear-gradient(120deg,#f6d786,#bc8232 50%,#e4be66); border: 1px solid #f9d987; outline: 2px solid #6e471f; border-radius: 8px; box-shadow: 0 4px 0 #65411d,inset 0 1px 2px #fff6; font-size: clamp(14px,1.35vw,23px); padding: 10px 12px; letter-spacing: .12em; font-weight: 700; }
+#roll span { float: right; }
+#roll:disabled { cursor: wait; filter: saturate(.5); }
+.action-panel small { display: block; margin-top: 13px; font-size: 9px; line-height: 1.6; color: #6e543a; }
+#inspection { position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); padding: 10px 24px; border: 1px solid #d2ab6370; border-radius: 30px; background: #21170fe8; font-size: 13px; box-shadow: 0 8px 20px #0006; opacity: 0; pointer-events: none; transition: opacity .2s; }
+#inspection.visible { opacity: 1; }
+footer { position: fixed; bottom: 0; right: 0; left: 0; padding: 12px 28px; display: flex; justify-content: space-between; font-size: 10px; color: #b8a083; background: linear-gradient(transparent,#140d08aa); letter-spacing: .12em; pointer-events: none; }
+#loading { position: fixed; z-index: 5; inset: 0; display: grid; place-content: center; text-align: center; background: #21160f; }
+#loading > div { color: #dabb7a; font: 38px Georgia,serif; letter-spacing: .4em; }
+#loading p { font-size: 13px; color: #ac9672; }
+@media(max-width:760px) { header { height: 58px; padding: 0 14px; } header a { font-size: 12px; } h1 { font-size: 21px; } nav button { font-size: 10px; padding: 6px; } .edition { left: 14px; top: 68px; font-size: 8px; } .action-panel { top: auto; bottom: 45px; right: 14px; width: 210px; } .action-kicker,.action-panel small { display: none; } .action-panel p { margin-bottom: 8px; } footer { font-size: 8px; padding: 12px; } }
