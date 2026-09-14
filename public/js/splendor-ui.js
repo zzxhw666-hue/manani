@@ -82,7 +82,7 @@ window.SPLENDOR_UI = (function () {
     popup.node.querySelector('[data-confirm]').onclick = function () {
       var returns = {}; var count = 0; var valid = true;
       popup.node.querySelectorAll('[data-return]').forEach(function (input) {
-        var value = Number(input.value || 0); if (value < 0 || value > Number(input.max)) valid = false;
+        var value = Number(input.value || 0); if (!Number.isInteger(value) || value < 0 || value > Number(input.max)) valid = false;
         if (value) returns[input.dataset.return] = value; count += value;
       });
       if (!valid || count !== excess) { toast('需要恰好归还 ' + excess + ' 枚筹码', false); return; }
@@ -99,7 +99,7 @@ window.SPLENDOR_UI = (function () {
   }
 
   function nobleHtml(noble) {
-    return '<article class="spl-noble"><div><span>NOBLE</span><strong>3</strong></div><div class="spl-costs">' + tokenPips(noble.requirement, 'requirement') + '</div></article>';
+    return '<article class="spl-noble"><i class="legacy-noble-art" style="' + cardArtStyle(noble.id) + '"></i><div><span>NOBLE</span><strong>3</strong></div><div class="spl-costs">' + tokenPips(noble.requirement, 'requirement') + '</div></article>';
   }
 
   function canBuy(player, card) {
@@ -110,11 +110,16 @@ window.SPLENDOR_UI = (function () {
     return goldNeeded <= Number(player.tokens.gold || 0);
   }
 
+  function cardArtStyle(id) {
+    var a = window.SPLENDOR_ART.cardArt(id);
+    return 'background-image:url(' + a.src + ');background-size:' + (a.columns*100) + '% ' + (a.rows*100) + '%;background-position:' + (a.column/(a.columns-1)*100) + '% ' + (a.row/(a.rows-1)*100) + '%';
+  }
+
   function cardHtml(card, active, reserved, self) {
     var cost = tokenPips(card.cost, 'cost');
     var affordable = self && canBuy(self, card);
     var canReserve = self && self.reservedCount < 3;
-    return '<article class="spl-card bonus-' + card.bonus + '" data-card-tier="' + card.tier + '"><header><span class="spl-card-points">' + (card.points || '') + '</span><span class="spl-card-gem" title="永久提供 1 点' + META[card.bonus].name + '折扣">' + gemImage('gem', card.bonus, 'spl-card-gem-image') + '</span></header><div class="spl-card-art"><i></i><i></i><i></i></div><div class="spl-card-cost">' + cost + '</div>' + (active ? '<footer><button class="spl-card-action buy" data-buy="' + esc(card.id) + '" type="button" ' + (affordable ? '' : 'disabled title="宝石不足"') + '>购买</button>' + (!reserved && canReserve ? '<button class="spl-card-action reserve" data-reserve="' + esc(card.id) + '" data-tier="' + card.tier + '" type="button">预留</button>' : '') + '</footer>' : '') + '</article>';
+    return '<article class="spl-card bonus-' + card.bonus + '" data-card-tier="' + card.tier + '"><header><span class="spl-card-points">' + (card.points || '') + '</span><span class="spl-card-gem" title="永久提供 1 点' + META[card.bonus].name + '折扣">' + gemImage('gem', card.bonus, 'spl-card-gem-image') + '</span></header><div class="spl-card-art" style="' + cardArtStyle(card.id) + '"></div><div class="spl-card-cost">' + cost + '</div>' + (active ? '<footer><button class="spl-card-action buy" data-buy="' + esc(card.id) + '" type="button" ' + (affordable ? '' : 'disabled title="宝石不足"') + '>购买</button>' + (!reserved && canReserve ? '<button class="spl-card-action reserve" data-reserve="' + esc(card.id) + '" data-tier="' + card.tier + '" type="button">预留</button>' : '') + '</footer>' : '') + '</article>';
   }
 
   function bankHtml(room, self, active) {
@@ -200,7 +205,7 @@ window.SPLENDOR_UI = (function () {
     if (chat) chat.onsubmit = function (event) { event.preventDefault(); var input = chat.querySelector('input'); if (input.value.trim()) { handlers.chat(input.value.trim()); input.value = ''; } };
   }
 
-  function renderGame(room, me, handlers, tools) {
+  function renderFlatGame(room, me, handlers, tools) {
     tools.show('game');
     var self = room.players.find(function (player) { return player.id === me.id; }) || me;
     var active = room.status === 'playing' && room.currentPlayerId === self.id && !self.isBot;
@@ -215,5 +220,38 @@ window.SPLENDOR_UI = (function () {
     bind(root, room, self, active, handlers, tools);
   }
 
-  return { renderGame: renderGame };
+  var live = null, pending = false, latest = null, generation = 0, flatOnly = false;
+  function dispose() {
+    generation += 1; pending = false;
+    if (live) live.destroy();
+    live = null; latest = null; flatOnly = false;
+    clearInterval(clockTimer); clockTimer = null;
+    document.body.classList.remove('splendor-3d-active');
+    document.getElementById('game-root').className = '';
+  }
+  function fallback(note) {
+    var saved = latest; dispose(); flatOnly = true; latest = saved;
+    if (!saved) return;
+    if (note) saved.tools.toast(note, false);
+    renderFlatGame(saved.room, saved.me, saved.handlers, saved.tools);
+    var button = document.createElement('button');button.textContent = '重试 3D';button.className = 'btn ghost small';
+    button.onclick = function () { flatOnly = false; renderGame(saved.room, saved.me, saved.handlers, saved.tools); };
+    document.getElementById('game-header').appendChild(button);
+  }
+  function renderGame(room, me, handlers, tools) {
+    if (latest && (latest.room.code !== room.code || latest.me.id !== me.id)) dispose();
+    latest = {room:room,me:me,handlers:handlers,tools:tools};tools.show('game');
+    if (flatOnly) { fallback(); return; }
+    if (live) { live.update(room,me,handlers,tools); return; }
+    if (pending) return;
+    pending = true;var request = ++generation;
+    document.getElementById('game-root').innerHTML = '<p style="padding:40px;color:#e4c996">正在加载 3D 桌面…</p>';
+    import('./splendor-live-ui.js').then(function (module) {
+      if (request !== generation || !latest) return;
+      pending = false;
+      live = module.createLiveUI({modal:modal,perform:perform,chooseNoble:chooseNoble,rulesModal:rulesModal,startClock:startClock,scoreHtml:scoreHtml},fallback);
+      live.update(latest.room,latest.me,latest.handlers,latest.tools);
+    }).catch(function (error) { if (request === generation) fallback('3D 加载失败，已启用兼容视图：'+error.message); });
+  }
+  return { renderGame: renderGame, dispose: dispose, inspect: function () { return live ? live.inspect() : null; } };
 })();

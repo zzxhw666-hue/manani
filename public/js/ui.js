@@ -24,6 +24,7 @@ window.MANILA_UI = (function () {
       document.getElementById('screen-' + screen).classList.toggle('hidden', screen !== name);
     });
     if (name !== 'game') {
+      if (window.SPLENDOR_UI) window.SPLENDOR_UI.dispose();
       clearInterval(decisionClockTimer);
       decisionClockTimer = null;
       eventQueue = [];
@@ -444,6 +445,7 @@ window.MANILA_UI = (function () {
 
   function renderGame(room, me, handlers) {
     if (room.gameMode === 'splendor' && window.SPLENDOR_UI) return window.SPLENDOR_UI.renderGame(room, me, handlers, { show: show, toast: toast, alertTurn: alertTurn });
+    if (window.SPLENDOR_UI) window.SPLENDOR_UI.dispose();
     show('game');
     var self = room.players.find(function (player) { return player.id === me.id; }) || me;
     renderHeader(room, self, handlers);
