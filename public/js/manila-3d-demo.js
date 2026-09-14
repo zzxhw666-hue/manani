@@ -52,10 +52,10 @@ const warm=new THREE.PointLight('#ffad43',28,15,2);warm.position.set(-11,3,2);sc
 
 function mesh(geometry,material,parent=scene,x=0,y=0,z=0) { const o=new THREE.Mesh(geometry,material);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o; }
 function box(w,h,d,material,x,y,z,parent=scene) { return mesh(new THREE.BoxGeometry(w,h,d),material,parent,x,y,z); }
-function slab(w,d,h,material,x,y,z,parent=scene) {
+function slab(w,d,h,material,x,y,z,parent=scene,bevel=.025) {
   const s=new THREE.Shape(),r=Math.min(.08,w/6,d/6),a=-w/2,b=-d/2;
   s.moveTo(a+r,b);s.lineTo(a+w-r,b);s.quadraticCurveTo(a+w,b,a+w,b+r);s.lineTo(a+w,b+d-r);s.quadraticCurveTo(a+w,b+d,a+w-r,b+d);s.lineTo(a+r,b+d);s.quadraticCurveTo(a,b+d,a,b+d-r);s.lineTo(a,b+r);s.quadraticCurveTo(a,b,a+r,b);
-  const g=new THREE.ExtrudeGeometry(s,{depth:h,bevelEnabled:true,bevelThickness:.025,bevelSize:.025,bevelSegments:2,curveSegments:4});g.rotateX(-Math.PI/2);
+  const g=new THREE.ExtrudeGeometry(s,{depth:h,bevelEnabled:true,bevelThickness:bevel,bevelSize:bevel,bevelSegments:2,curveSegments:4});g.rotateX(-Math.PI/2);
   const p=g.attributes.position,u=g.attributes.uv;for(let i=0;i<u.count;i++)u.setXY(i,(p.getX(i)+w/2)/w,(p.getZ(i)+d/2)/d);
   return mesh(g,material,parent,x,y,z);
 }
@@ -73,6 +73,14 @@ function pawn(color,x,y,z,parent=scene,scale=1) {
   const m=new THREE.MeshPhysicalMaterial({color,roughness:.26,clearcoat:.72,clearcoatRoughness:.18});
   const points=[[.19,0],[.22,.05],[.2,.11],[.14,.19],[.11,.31],[.09,.39],[.12,.44]].map(p=>new THREE.Vector2(...p));
   mesh(new THREE.LatheGeometry(points,24),m,group);mesh(new THREE.SphereGeometry(.145,24,16),m,group,0,.54,0);disc(.23,.045,m,0,.025,0,group);return group;
+}
+// Dark, brass-rimmed recesses are pawn seats; ivory discs are navigation steps.
+function seat(x,y,z,{parent=scene,r=.27,occupant=null,label='',detail='',scale=.78}={}) {
+  disc(r,.024,dark,x,y,z,parent);ring(r,.022,x,y+.019,z,parent);
+  if(occupant!==null)pawn(colors[occupant],x,y+.032,z,parent,scale);
+  else writing('＋',r*1.25,r*1.25,x,y+.016,z,parent,'#d7b875','400');
+  if(label)writing(label,1.3,.30,x,y+.04,z+.44,parent,'#382719');
+  if(detail)writing(detail,1.3,.22,x,y+.04,z+.74,parent,'#664c2c','400');
 }
 // The table, board and trays have real thickness and receive shadows independently.
 slab(29,23,.8,walnut,0,-1.1,0);slab(25,18,.24,walnut,0,-.35,0);
@@ -99,10 +107,14 @@ laneZ.forEach((z,lane)=>{
     disc(.23,.026,paper,x,.346,z);writing(String(i),.35,.29,x,.367,z,scene,'#45331d');
     if(i<13)rod([x+.29,.349,z],[x+.49,.349,z],.008,gold);
   }
-  plaque('港口 '+['A','B','C'][lane],1.42,.48,3.68,.36,z-.12);writing(['6₱','8₱','15₱'][lane],1.05,.41,3.68,.454,z+.43,scene,'#362211');
+  for(const [column,x] of [3.3,4.62].entries()){
+    slab(1.18,1.93,.022,paper,x,.36,z+.10,scene,.008);
+    writing((column?'修船厂 ':'港口 ')+['A','B','C'][lane],1.13,.33,x,.407,z-.58,scene,'#382719');
+    seat(x,.418,z-.02,{r:.27,label:'1 位',detail:'收益 '+[6,8,15][lane]+'₱'});
+  }
 });
 
-function ship(sailColor,x,z,crew,name,scale=1) {
+function ship(sailColor,x,z,crew,name,scale=1,capacity=3) {
   const g=new THREE.Group();scene.add(g);g.position.set(x,.38,z);g.scale.setScalar(scale);
   const outline=[[-1.05,0],[-.86,-.38],[-.46,-.5],[.35,-.45],[.8,-.28],[1.04,0],[.8,.28],[.35,.45],[-.46,.5],[-.86,.38]];
   const verts=[],indices=[],levels=[[.63,0],[.87,.14],[1,.42]];
@@ -120,26 +132,42 @@ function ship(sailColor,x,z,crew,name,scale=1) {
   const sail=mesh(sailGeo,new THREE.MeshStandardMaterial({map:sailTex,roughness:.89,side:THREE.DoubleSide}),g,-.18,1.36,-.19);
   rod([-.9,.45,.32],[-.24,2.1,-.14],.012,ropeMat,g);rod([.88,.45,.1],[-.24,2.1,-.14],.012,ropeMat,g);
   rod([-.77,.78,-.2],[.48,.63,-.2],.026,redWood,g);
-  crew.forEach((p,i)=>pawn(colors[p],-.51+i*.37,.36,.17,g,.6));
-  g.userData={label:name+'船 · '+crew.map(p=>players[p]).join('、'),start:x,position:Math.round((x+7.75)/.78),crew};
+  for(let i=0;i<capacity;i++)seat((i-(capacity-1)/2)*.39,.365,.20,{parent:g,r:.174,occupant:crew[i]??null,scale:.58});
+  if(name!=='海盗'){
+    slab(2.2,.43,.018,paper,0,.012,.91,g,.005);
+    writing('船员 '+crew.length+' / '+capacity+' 位',2.06,.30,0,.043,.91,g,'#382719');
+  }
+  g.userData={label:name+'船 · '+capacity+' 个船员放置位 · '+crew.map(p=>players[p]).join('、'),start:x,position:Math.round((x+7.75)/.78),crew};
   g.traverse(o=>{if(o.isMesh){o.userData.ship=g;interactives.push(o);}});boats.push(g);return g;
 }
 ship('#d6bc83',-7.75+7*.78,laneZ[0],[0,1],'人参');
 ship('#23569a',-7.75+4*.78,laneZ[1],[2,1],'丝绸');
-ship('#267958',-7.75+9*.78,laneZ[2],[3,0,3],'翡翠');
+ship('#267958',-7.75+9*.78,laneZ[2],[3,0,3],'翡翠',1,4);
 // Special sites lie on separate parchment sheets along the edge of the board.
 for(const x of [-7.7,-2.85,2.0]) {slab(4.5,1.64,.018,paper,x,.35,3.39);ring(.052,.012,x-2.06,.392,2.7);ring(.052,.012,x+2.06,.392,4.08);}
-const pirate=ship('#242423',-7.7,3.25,[],'海盗',.72);boats.pop();pirate.userData.label='海盗船 · 第二轮登船 / 第三轮劫掠';
+const pirate=ship('#242423',-9.02,3.17,[],'海盗',.54,0);boats.pop();pirate.userData.label='海盗船 · 船长 1 位、船员 1 位 · 第二轮登船 / 第三轮劫掠';
 const skull=texture(128,128,(c)=>{c.fillStyle='#eee0c6';c.font='76px serif';c.textAlign='center';c.fillText('☠',64,93);});
 const skullPlane=mesh(new THREE.PlaneGeometry(.58,.58),new THREE.MeshBasicMaterial({map:skull,transparent:true,side:THREE.DoubleSide}),pirate,-.18,1.4,.025);skullPlane.castShadow=false;
-plaque('海 盗 船',1.7,.38,-7.7,.4,4.04);
-disc(.69,.13,gold,-2.85,.46,3.26);disc(.61,.05,paper,-2.85,.55,3.26);ring(.57,.028,-2.85,.61,3.26);
-for(let i=0;i<16;i++){const a=i*Math.PI/8;rod([-2.85+Math.sin(a)*.49,.61,3.26+Math.cos(a)*.49],[-2.85+Math.sin(a)*.55,.61,3.26+Math.cos(a)*.55],.008,dark);}
-const needle=mesh(new THREE.ConeGeometry(.11,.9,4),gold,scene,-2.85,.66,3.26);needle.rotation.x=Math.PI/2;needle.rotation.z=.6;pawn(colors[1],-1.63,.39,3.25,scene,.77);plaque('领 航 岛',1.7,.38,-2.85,.4,4.04);
-const insurance=new THREE.Group();insurance.position.set(1.52,.42,3.26);insurance.rotation.y=-.12;scene.add(insurance);for(let i=0;i<3;i++)slab(1.7,1.18,.025,paper,i*.03,i*.04,0,insurance);face(1.72,1.2,icons[6],0,.13,0,insurance,true);plaque('保 险 公 司',2,.38,2.0,.4,4.04);
+writing('海盗船 · 2 位',1.65,.3,-9.02,.44,4.0,scene,'#382719');
+seat(-7.59,.43,3.12,{label:'海盗船长',detail:'1 位 · 5₱'});
+seat(-6.12,.43,3.12,{label:'海盗船员',detail:'1 位 · 5₱'});
+const compassX=-4.20;
+disc(.49,.13,gold,compassX,.46,3.26);disc(.43,.05,paper,compassX,.55,3.26);ring(.40,.022,compassX,.61,3.26);
+for(let i=0;i<16;i++){const a=i*Math.PI/8;rod([compassX+Math.sin(a)*.34,.61,3.26+Math.cos(a)*.34],[compassX+Math.sin(a)*.39,.61,3.26+Math.cos(a)*.39],.008,dark);}
+const needle=mesh(new THREE.ConeGeometry(.08,.66,4),gold,scene,compassX,.66,3.26);needle.rotation.x=Math.PI/2;needle.rotation.z=.6;
+writing('领航岛 · 2 位',1.65,.3,compassX,.44,4.0,scene,'#382719');
+seat(-2.75,.43,3.12,{label:'大领航员',detail:'1 位 · 5₱',occupant:1});
+seat(-1.30,.43,3.12,{label:'小领航员',detail:'1 位 · 2₱'});
+const insurance=new THREE.Group();insurance.position.set(1.0,.42,3.25);insurance.rotation.y=-.12;scene.add(insurance);
+// Each sheet has .034 total thickness, spaced .055 apart. The artwork sits
+// above the top bevel (.144), not coplanar with it: no z-fighting while orbiting.
+for(let i=0;i<3;i++)slab(1.6,1.02,.026,paper,i*.03,i*.055,0,insurance,.004);
+face(1.6,1.02,icons[6],.06,.17,0,insurance,true);
+writing('保险公司 · 1 位',2.0,.30,1.0,.44,4.0,scene,'#382719');
+seat(3.35,.43,3.12,{label:'保险员',detail:'1 个放置位'});
 
 function coin(x,y,z,parent=scene,r=.19) {disc(r,.055,gold,x,y,z,parent);ring(r*.85,.012,x,y+.033,z,parent);writing('₱',r*.9,r*.9,x,y+.043,z,parent,'#644616');}
-for(let i=0;i<5;i++)for(let j=0;j<2+i%3;j++)coin(2.73+i*.21,.43+j*.06,3.15+(i%2)*.29);
+for(let i=0;i<3;i++)for(let j=0;j<2+i%3;j++)coin(1.68+i*.20,.43+j*.06,3.35+(i%2)*.23,scene,.15);
 // Actual volumetric dice with independent faces and a recessed leather tray.
 slab(4.35,3.0,.19,walnut,7.65,.02,1.81);slab(4.03,2.7,.07,dark,7.65,.22,1.81);
 let moveLegend=writing('第 2 次移动',3.2,.43,7.65,.34,.65);
