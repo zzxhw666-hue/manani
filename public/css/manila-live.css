@@ -1,0 +1,43 @@
+.manila-live-board { min-width:0; overflow:hidden; border:1px solid #a17941; border-radius:8px; background:#21170f; box-shadow:0 12px 32px #0007; }
+.manila-board-tools { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; background:linear-gradient(#342316,#21170f); border-bottom:1px solid #806039; color:#f1dfb9; }
+.manila-board-tools span { display:block; font:9px Georgia,serif; letter-spacing:.2em; color:#bda06c; }
+.manila-board-tools strong { display:block; margin-top:4px; font-size:17px; }
+.manila-board-tools nav { display:flex; gap:7px; }
+.manila-board-tools button { font:inherit; font-size:12px; padding:7px 10px; color:#ebd6b3; background:#231a13; border:1px solid #957345; border-radius:4px; cursor:pointer; }
+.manila-board-tools button:focus-visible,.manila-boat-readouts button:focus-visible,.manila-placement-list summary:focus-visible { outline:2px solid #f0c46c; outline-offset:3px; }
+.manila-webgl { position:relative; width:100%; aspect-ratio:1.6; background:#23160e; }
+.manila-webgl canvas { display:block; width:100%; height:100%; touch-action:pan-y; }
+.manila-table-loading { position:absolute; inset:0; display:grid; place-items:center; color:#d9bc82; pointer-events:none; }
+.manila-boat-readouts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; padding:10px 12px 0; }
+.manila-boat-readouts button { display:grid; gap:5px; text-align:left; font:inherit; color:#e5d1ac; background:#302215; border:1px solid #846137; border-radius:4px; padding:9px 12px; cursor:pointer; min-width:0; }
+.manila-boat-readouts button:hover { background:#48321e; }
+.manila-boat-readouts button span { font-size:11px; color:#c0a883; }
+.manila-boat-readouts button strong { font-size:15px; color:#f1ce7e; }
+.manila-boat-readouts button small { font-size:10px; color:#b6a084; }
+.manila-board-hint { margin:0; padding:10px 14px; color:#d3bd96; font-size:12px; line-height:1.6; min-height:40px; }
+.manila-placement-list { border-top:1px solid #694c2c; }
+.manila-placement-list summary { cursor:pointer; padding:11px 14px; color:#e5d1ac; font-size:12px; }
+.manila-placement-list > .board { margin:0; border:0; }
+.manila-crew-detail p { display:flex; justify-content:space-between; gap:20px; padding:9px 0; border-bottom:1px solid #a38b6150; }
+.manila-control-column .action-card .btn.ghost { color:#51371f; border-color:#8f7045; }
+.manila-control-column .action-card .btn.secondary { color:#fff4d7; }
+.manila-placement-list [data-place]:focus-visible { outline:3px solid #92691c; outline-offset:3px; }
+@media (min-width:1100px) { .manila-table-layout { grid-template-columns:minmax(0,1fr) 300px; } }
+@media (max-width:760px) {
+  .manila-stage.with-3d { min-width:0; }
+  .manila-stage.with-3d .manila-table-layout { display:flex; flex-direction:column; align-items:stretch; }
+  .manila-stage.with-3d .manila-board-column,.manila-stage.with-3d .manila-control-column > .box { width:100%; }
+  .manila-stage.with-3d .manila-control-column { display:contents; }
+  .manila-stage.with-3d .action-card { order:-1; }
+  .manila-stage.with-3d .market { order:1; }
+  .manila-stage.with-3d .chronicle { order:2; }
+  .manila-stage.with-3d .player-list { grid-template-columns:1fr; }
+  .manila-stage.with-3d .manila-player-dock .assets.box { grid-template-columns:1fr; }
+  .manila-stage.with-3d .self-pawn-bank { border:0; padding:12px 0; }
+  .manila-placement-list { overflow-x:auto; }
+  .manila-placement-list > .board { min-width:720px; }
+  .manila-board-tools { padding:10px; }.manila-board-tools strong { font-size:14px; }
+  .manila-boat-readouts { gap:5px; padding:8px 7px 0; }.manila-boat-readouts button { padding:8px 6px; }
+  .manila-boat-readouts button strong { font-size:12px; }.manila-boat-readouts button small { font-size:9px; }
+  .manila-board-hint { font-size:11px; }.manila-crew-detail p { font-size:13px; }
+}

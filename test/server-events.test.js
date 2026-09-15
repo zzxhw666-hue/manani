@@ -36,6 +36,11 @@ test('健康检查与 SSE 在房间变化时即时推送', async (t) => {
   const health = await fetch(`${base}/healthz`).then((response) => response.json());
   assert.deepEqual(health, { ok: true, rooms: 0 });
 
+  const liveModel = await fetch(`${base}/js/manila-table-state.mjs`);
+  assert.equal(liveModel.status, 200);
+  assert.match(liveModel.headers.get('content-type'), /javascript/);
+  assert.match(await liveModel.text(), /export function tableState/);
+
   const session = await post('session', { nickname: '推送测试' });
   const stream = await fetch(
     `${base}/api/events?sessionToken=${encodeURIComponent(session.sessionToken)}`,

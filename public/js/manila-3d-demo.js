@@ -114,7 +114,7 @@ laneZ.forEach((z,lane)=>{
   }
 });
 
-function ship(sailColor,x,z,crew,name,scale=1,capacity=3) {
+function ship(sailColor,x,z,crew,name,scale=.70,capacity=3) {
   const g=new THREE.Group();scene.add(g);g.position.set(x,.38,z);g.scale.setScalar(scale);
   const outline=[[-1.05,0],[-.86,-.38],[-.46,-.5],[.35,-.45],[.8,-.28],[1.04,0],[.8,.28],[.35,.45],[-.46,.5],[-.86,.38]];
   const verts=[],indices=[],levels=[[.63,0],[.87,.14],[1,.42]];
@@ -137,12 +137,12 @@ function ship(sailColor,x,z,crew,name,scale=1,capacity=3) {
     slab(2.2,.43,.018,paper,0,.012,.91,g,.005);
     writing('船员 '+crew.length+' / '+capacity+' 位',2.06,.30,0,.043,.91,g,'#382719');
   }
-  g.userData={label:name+'船 · '+capacity+' 个船员放置位 · '+crew.map(p=>players[p]).join('、'),start:x,position:Math.round((x+7.75)/.78),crew};
+  g.userData={label:name+'船 · '+capacity+' 个船员放置位 · '+crew.map(p=>players[p]).join('、'),start:x,position:Math.round((x+7.75)/.78),crew,name};
   g.traverse(o=>{if(o.isMesh){o.userData.ship=g;interactives.push(o);}});boats.push(g);return g;
 }
 ship('#d6bc83',-7.75+7*.78,laneZ[0],[0,1],'人参');
 ship('#23569a',-7.75+4*.78,laneZ[1],[2,1],'丝绸');
-ship('#267958',-7.75+9*.78,laneZ[2],[3,0,3],'翡翠',1,4);
+ship('#267958',-7.75+9*.78,laneZ[2],[3,0,3],'翡翠',.70,4);
 // Special sites lie on separate parchment sheets along the edge of the board.
 for(const x of [-7.7,-2.85,2.0]) {slab(4.5,1.64,.018,paper,x,.35,3.39);ring(.052,.012,x-2.06,.392,2.7);ring(.052,.012,x+2.06,.392,4.08);}
 const pirate=ship('#242423',-9.02,3.17,[],'海盗',.54,0);boats.pop();pirate.userData.label='海盗船 · 船长 1 位、船员 1 位 · 第二轮登船 / 第三轮劫掠';
@@ -218,7 +218,7 @@ document.querySelector('#camera').onclick=()=>{overhead=!overhead;document.query
 const ray=new THREE.Raycaster(),pointer=new THREE.Vector2();
 renderer.domElement.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,yaw,pitch};renderer.domElement.setPointerCapture(e.pointerId);});
 renderer.domElement.addEventListener('pointermove',e=>{if(!drag)return;yaw=THREE.MathUtils.clamp(drag.yaw+(e.clientX-drag.x)*.0008,-.13,.13);pitch=THREE.MathUtils.clamp(drag.pitch+(e.clientY-drag.y)*.0007,-.1,.1);});
-renderer.domElement.addEventListener('pointerup',e=>{if(drag&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6){pointer.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(pointer,camera);const hits=ray.intersectObjects(interactives,false);if(hits.length)toast(hits[0].object.userData.ship.userData.label);}drag=null;});
+renderer.domElement.addEventListener('pointerup',e=>{if(drag&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<6){pointer.set(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2);ray.setFromCamera(pointer,camera);const hits=ray.intersectObjects(interactives,false);if(hits.length){const b=hits[0].object.userData.ship;const p=Math.round((b.position.x+7.75)/.78);toast(b.userData.label+(boats.includes(b)?' · '+(p>13?'已抵港':'航道 '+p+(p===13?'（海盗点）':'')):''));}}drag=null;});
 renderer.domElement.addEventListener('pointercancel',()=>{drag=null;});
 function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();}
 addEventListener('resize',resize);resize();

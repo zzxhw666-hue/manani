@@ -10,6 +10,15 @@ window.MANILA_UI = (function () {
   var titleFlashStopTimer = null;
   var baseTitle = document.title;
   var decisionClockTimer = null;
+  var manilaTable = null, manilaTableMount = null, manilaTableLoading = false;
+  var manilaTableEpoch = 0, manilaFlat = false, manilaLatest = null, manilaModel = null, manilaSignature = '';
+  var manilaOverhead = false;
+
+  function disposeManilaTable() {
+    manilaTableEpoch++;
+    if (manilaTable) manilaTable.dispose();
+    manilaTable = null; manilaTableMount = null; manilaTableLoading = false; manilaSignature = ''; manilaOverhead = false;
+  }
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -24,6 +33,10 @@ window.MANILA_UI = (function () {
       document.getElementById('screen-' + screen).classList.toggle('hidden', screen !== name);
     });
     if (name !== 'game') {
+      disposeManilaTable();
+      manilaLatest = null;
+      document.querySelectorAll('.manila-boat-modal').forEach(function (node) { node.remove(); });
+      if (window.SPLENDOR_UI) window.SPLENDOR_UI.dispose();
       clearInterval(decisionClockTimer);
       decisionClockTimer = null;
       eventQueue = [];
@@ -419,7 +432,11 @@ window.MANILA_UI = (function () {
   }
 
   function bindGame(root, room, me, handlers) {
-    root.querySelectorAll('[data-place]').forEach(function (node) { node.onclick = function () { handlers.act('place', { location: node.dataset.place }); }; });
+    root.querySelectorAll('[data-place]').forEach(function (node) {
+      node.setAttribute('role', 'button'); node.tabIndex = 0;
+      node.onclick = function () { handlers.act('place', { location: node.dataset.place }); };
+      node.onkeydown = function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); node.click(); } };
+    });
     var bid = root.querySelector('[data-bid]'); if (bid) bid.onclick = function () { handlers.act('bid', { amount: Number(root.querySelector('#bid-value').value) }); };
     var passAuction = root.querySelector('[data-pass-auction]'); if (passAuction) passAuction.onclick = function () { handlers.act('pass-auction'); };
     var setup = root.querySelector('[data-setup]'); if (setup) setup.onclick = function () { setupModal(room, handlers); };
@@ -443,14 +460,105 @@ window.MANILA_UI = (function () {
   }
 
   function renderGame(room, me, handlers) {
-    if (room.gameMode === 'splendor' && window.SPLENDOR_UI) return window.SPLENDOR_UI.renderGame(room, me, handlers, { show: show, toast: toast, alertTurn: alertTurn });
+    if (room.gameMode === 'splendor' && window.SPLENDOR_UI) { disposeManilaTable(); manilaLatest = null; return window.SPLENDOR_UI.renderGame(room, me, handlers, { show: show, toast: toast, alertTurn: alertTurn }); }
+    if (window.SPLENDOR_UI) window.SPLENDOR_UI.dispose();
     show('game');
     var self = room.players.find(function (player) { return player.id === me.id; }) || me;
     renderHeader(room, self, handlers);
     var root = document.getElementById('game-root');
-    root.innerHTML = '<div class="manila-stage">' + settlementHtml(room, self) + scoreHtml(room) + '<div class="manila-opponents">' + playersHtml(room, self) + '</div><div class="manila-table-layout"><main class="manila-board-column">' + (room.boats.length ? boardHtml(room, self) : '<section class="box board"><div class="empty-state"><span>⛵</span><p>等待港务长布置本轮货船</p></div></section>') + '</main><aside class="manila-control-column">' + marketHtml(room) + currentActionHtml(room, self) + logChatHtml(room) + '</aside></div><div class="manila-player-dock">' + assetsHtml(room, self) + '</div></div>';
+    manilaLatest = { room: room, me: me, handlers: handlers };
+    document.querySelectorAll('.manila-boat-modal').forEach(function (node) {
+      var boat = room.boats.find(function (b) { return b.ware === node.dataset.ware; });
+      if (JSON.stringify(boat) !== node.dataset.boatSignature) node.remove();
+    });
+    // Keep the renderer alive across SSE updates; only the surrounding controls change.
+    if (manilaTableMount && !manilaFlat) manilaTableMount.remove();
+    root.innerHTML = '<div class="manila-stage' + (manilaFlat ? '' : ' with-3d') + '">' + settlementHtml(room, self) + scoreHtml(room) + '<div class="manila-opponents">' + playersHtml(room, self) + '</div><div class="manila-table-layout"><main class="manila-board-column">' + liveBoardHtml(room, self) + '</main><aside class="manila-control-column">' + currentActionHtml(room, self) + marketHtml(room) + logChatHtml(room) + '</aside></div><div class="manila-player-dock">' + assetsHtml(room, self) + '</div></div>';
+    if (!manilaFlat) {
+      var placeholder = root.querySelector('.manila-webgl');
+      if (manilaTableMount) placeholder.replaceWith(manilaTableMount);
+      else manilaTableMount = placeholder;
+      ensureManilaTable();
+    }
+    root.querySelector('[data-table-mode]').onclick = function () { manilaFlat = !manilaFlat; disposeManilaTable(); renderGame(manilaLatest.room, manilaLatest.me, manilaLatest.handlers); };
+    var cameraButton = root.querySelector('[data-table-camera]');
+    if (cameraButton) {
+      cameraButton.textContent = manilaOverhead ? '回到座位' : '俯瞰棋盘';
+      cameraButton.onclick = function () { if (manilaTable) { manilaOverhead = manilaTable.toggleCamera(); cameraButton.textContent = manilaOverhead ? '回到座位' : '俯瞰棋盘'; } };
+    }
+    root.querySelectorAll('[data-inspect-boat]').forEach(function (button) { button.onclick = function () { inspectBoat(button.dataset.inspectBoat); }; });
     bindGame(root, room, self, handlers);
     syncRoomEvents(room);
+  }
+
+  function livePosition(boat) {
+    return boat.status === 'sea' ? (boat.position < 0 ? '外海 ' : '航道 ') + boat.position + (boat.position === 13 ? ' · 海盗点' : '') : (boat.status === 'port' ? '已抵港 ' : '修船厂 ') + boat.dock;
+  }
+
+  function liveBoardHtml(room, self) {
+    var flat = boardHtml(room, self);
+    var toolbar = '<div class="manila-board-tools"><div><span>MANILA · LIVE TABLE</span><strong>帕西格河航道</strong></div><nav>' + (!manilaFlat ? '<button data-table-camera type="button">俯瞰棋盘</button>' : '') + '<button data-table-mode type="button">' + (manilaFlat ? '切换 3D 棋盘' : '兼容模式') + '</button></nav></div>';
+    if (manilaFlat) return toolbar + flat;
+    return '<section class="manila-live-board">' + toolbar + '<div class="manila-webgl" role="img" aria-label="实时三维棋盘；下方船位信息和展开的操作列表可使用键盘操作"><span class="manila-table-loading">正在铺开三维棋盘…</span></div><div class="manila-boat-readouts">' + room.boats.map(function (boat) {
+      return '<button data-inspect-boat="' + esc(boat.ware) + '" type="button"><span>' + D.wares[boat.ware].name + '船</span><strong>' + esc(livePosition(boat)) + '</strong><small>船员 ' + boat.crew.length + ' / ' + D.wares[boat.ware].crewCosts.length + ' · 查看详情</small></button>';
+    }).join('') + '</div><p class="manila-board-hint" id="manila-board-hint" role="status">金色圆位可派遣帮手 · 点击船只查看点位 · 拖动微调视角</p><details class="manila-placement-list"><summary>展开全部放置位、费用与操作（键盘 / 小屏）</summary>' + flat + '</details></section>';
+  }
+
+  function inspectBoat(ware) {
+    if (!manilaLatest) return;
+    var room = manilaLatest.room, boat = room.boats.find(function (b) { return b.ware === ware; });
+    if (!boat) return;
+    var info = D.wares[ware];
+    var mask = modal(info.name + '船 · ' + livePosition(boat), '<p>当前点位：<b>' + esc(livePosition(boat)) + '</b></p><p>' + (boat.status === 'sea' ? '还需前进 ' + Math.max(0, 14 - boat.position) + ' 格才能正常抵港；停在 13 不算正常抵港。' : '本船已结束航行，不能再派遣船员。') + '</p><p>抵港奖池：' + info.pool + '₱</p><div class="manila-crew-detail">' + info.crewCosts.map(function (cost, i) {
+      return '<p><b>船员位 ' + (i + 1) + '</b><span>' + (boat.crew[i] ? esc(nickname(room, boat.crew[i].pid)) : '空位 · 费用 ' + cost + '₱') + '</span></p>';
+    }).join('') + '</div>', null);
+    mask.classList.add('manila-boat-modal'); mask.dataset.ware = ware; mask.dataset.boatSignature = JSON.stringify(boat);
+  }
+
+  function updateManilaTable() {
+    if (!manilaTable || !manilaLatest || !manilaModel) return;
+    var next = manilaModel.tableState(manilaLatest.room, manilaLatest.me.id);
+    var signature = JSON.stringify(next);
+    if (signature !== manilaSignature) { manilaTable.update(next); manilaSignature = signature; }
+  }
+
+  function ensureManilaTable() {
+    if (manilaTable) { updateManilaTable(); return; }
+    if (manilaTableLoading) return;
+    manilaTableLoading = true;
+    var epoch = ++manilaTableEpoch, host = manilaTableMount;
+    function fallback(message) {
+      if (epoch !== manilaTableEpoch || !manilaLatest) return;
+      manilaFlat = true; disposeManilaTable();
+      toast(message || '此设备暂不支持 3D，已切换兼容棋盘，仍可正常对局', false);
+      renderGame(manilaLatest.room, manilaLatest.me, manilaLatest.handlers);
+    }
+    Promise.all([import('./manila-table.js'), import('./manila-table-state.mjs')]).then(async function (modules) {
+      if (epoch !== manilaTableEpoch) return;
+      manilaModel = modules[1];
+      var table = await modules[0].createManilaTable(host, {
+        onFailure: fallback,
+        onPick: function (item) {
+          if (!item || !manilaLatest) return;
+          if (item.kind === 'boat') { inspectBoat(item.ware); return; }
+          var s = manilaModel.tableState(manilaLatest.room, manilaLatest.me.id).slots.find(function (s) { return s.key === item.key; });
+          if (!s) return;
+          if (s.canPlace) manilaLatest.handlers.act('place', { location: s.location });
+          else toast(s.detail + (s.available ? ' · 请在你的派遣回合操作，并检查可用资金' : ''), true);
+        },
+        onHover: function (item) {
+          var hint = document.getElementById('manila-board-hint');
+          if (!hint || !manilaLatest) return;
+          var state = manilaModel.tableState(manilaLatest.room, manilaLatest.me.id);
+          var subject = item && (item.kind === 'boat' ? state.boats.find(function (b) { return b.ware === item.ware; }) : state.slots.find(function (s) { return s.key === item.key; }));
+          hint.textContent = subject ? subject.detail : '金色圆位可派遣帮手 · 点击船只查看点位 · 拖动微调视角';
+        }
+      });
+      if (epoch !== manilaTableEpoch) { table.dispose(); return; }
+      manilaTable = table; manilaTableLoading = false;
+      var loading = host.querySelector('.manila-table-loading'); if (loading) loading.remove();
+      updateManilaTable();
+    }).catch(function (error) { console.error('Manila 3D:', error); fallback(); });
   }
 
   function setupModal(room, handlers) {
