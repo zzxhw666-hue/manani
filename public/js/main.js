@@ -6,6 +6,7 @@
   var eventSource = null;
   var fallbackTimer = null;
   var busy = false;
+  var stateEpoch = 0;
   var observedRoomCode = '';
   var observedTurnOwnerId = null;
 
@@ -81,9 +82,13 @@
 
   async function refresh() {
     if (!API.hasSession() || busy) return;
+    var epoch = ++stateEpoch;
     try {
       var previousRoom = room;
       var result = await API.state();
+      // SSE reads may finish out of order, or after a newer action response.
+      if (epoch !== stateEpoch || busy) return;
+      if (room && result.room && room.code === result.room.code && Number(result.room.version) < Number(room.version)) return;
       room = result.noRoom ? null : result.room;
       observeTurn(room);
       if (!room && previousRoom && result.notice) UI.toast(result.notice, false);
@@ -91,9 +96,11 @@
         UI.renderGame(room, me(), handlers);
       } else {
         var listing = await API.listRooms();
+        if (epoch !== stateEpoch || busy) return;
         UI.renderLobby(me(), listing.rooms || [], room, handlers);
       }
     } catch (error) {
+      if (epoch !== stateEpoch || busy) return;
       if (/会话失效/.test(error.message)) {
         stopUpdates(); API.logout(); room = null; UI.show('auth'); UI.toast('会话已失效，请重新进入', false);
       }
@@ -102,8 +109,20 @@
 
   async function act(action, payload) {
     if (busy || !room) return;
+    var targetCode = room.code;
+    ++stateEpoch;
     busy = true;
     try {
+      if (action === 'place') {
+        // The visual board can lag behind a turn change. Use the latest public
+        // room and version, then let the server validate turn, funds and seat.
+        var fresh = await API.state();
+        if (fresh.noRoom || !fresh.room) { room = null; throw new Error('房间已解散，请返回大厅'); }
+        room = fresh.room;
+        observeTurn(room);
+        if (room.status === 'playing' || room.status === 'finished') UI.renderGame(room, me(), handlers);
+        if (room.code !== targetCode) throw new Error('当前房间已改变，请重新选择放置位');
+      }
       var result = await API.action(action, payload || {}, room.version);
       if (!result.success) {
         if (result.room) room = result.room;
@@ -122,6 +141,7 @@
     if (busy) return;
     if (room) { UI.toast('请先退出当前房间，再加入其他房间', false); return; }
     var joined = false;
+    ++stateEpoch;
     busy = true;
     setLobbySubmitting(true);
     try {
@@ -135,6 +155,7 @@
   }
 
   async function leave() {
+    ++stateEpoch;
     try { var result = await API.leaveRoom(); room = null; observeTurn(null); UI.toast(result.message || '已离开房间', true); await refresh(); }
     catch (error) { UI.toast(error.message, false); }
   }
@@ -154,6 +175,7 @@
     if (busy) return;
     if (room) { UI.toast('请先退出当前房间，再创建新房间', false); return; }
     var created = false;
+    ++stateEpoch;
     busy = true;
     setLobbySubmitting(true);
     try {
@@ -181,7 +203,7 @@
       mode.dispatchEvent(new Event('change'));
     });
   });
-  document.getElementById('logout').addEventListener('click', function () { stopUpdates(); API.logout(); room = null; observeTurn(null); UI.show('auth'); });
+  document.getElementById('logout').addEventListener('click', function () { ++stateEpoch; stopUpdates(); API.logout(); room = null; observeTurn(null); UI.show('auth'); });
 
   syncModeChoice('manila');
   if (API.hasSession()) {

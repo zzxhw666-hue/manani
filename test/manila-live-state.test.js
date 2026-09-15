@@ -3,15 +3,39 @@ const assert = require('node:assert/strict');
 const game = require('../lib/game');
 const model = import('../public/js/manila-table-state.mjs');
 
-function fixture() {
-  const room=game.createRoom({code:'LIVE01',name:'3D 验收',maxPlayers:3,host:{id:'p1',nickname:'甲商人'}});
-  for(let i=2;i<=3;i++)game.addPlayer(room,{id:'p'+i,nickname:'商人'+i});
+function fixture(count=3) {
+  const room=game.createRoom({code:'LIVE01',name:'3D 验收',maxPlayers:count,host:{id:'p1',nickname:'甲商人'}});
+  for(let i=2;i<=count;i++)game.addPlayer(room,{id:'p'+i,nickname:'商人'+i});
   game.dispatch(room,'p1','start-game',{},()=>.42);
   game.dispatch(room,'p1','bid',{amount:1});
   while(room.phase==='auction')game.dispatch(room,room.currentPlayerId,'pass-auction');
   game.dispatch(room,'p1','harbor-setup',{wares:['ginseng','nutmeg','jade'],starts:{ginseng:3,nutmeg:3,jade:3}});
   return room;
 }
+test('3–5 人局港务长布船后可先派遣自己的棋子，扣款、所有权和轮转正确',async()=>{
+  const {tableState}=await model;
+  for(const count of [3,4,5])for(const location of ['boat:ginseng','pirate','pilot:large','insurance','port:A','shipyard:A']){
+    const room=fixture(count),captain=room.harborMasterId;
+    assert.equal(room.currentPlayerId,captain);
+    const seat=tableState(game.publicRoom(room,captain),captain).slots.find(s=>s.location===location&&s.available);
+    assert.equal(seat.canPlace,true,location);assert.equal(seat.reason,'');
+    const self=game.playerOf(room,captain),cash=self.cash,pawns=self.pawnsAvailable;
+    game.dispatch(room,captain,'place',{location});
+    const occupied=tableState(game.publicRoom(room,captain),captain).slots.find(s=>s.key===seat.key);
+    assert.equal(occupied.owner.id,captain);assert.equal(self.pawnsAvailable,pawns-1);
+    assert.equal(self.cash,cash+(location==='insurance'?10:-seat.cost));
+    assert.notEqual(room.currentPlayerId,captain);
+  }
+});
+test('派遣提示区分资金不足、他人回合、停止放置及帮手用尽',async()=>{
+  const {tableState}=await model,room=fixture(),self=game.playerOf(room,'p1');
+  const seat=()=>tableState(game.publicRoom(room,'p1'),'p1').slots.find(s=>s.location==='pilot:large');
+  self.cash=0;self.shares={ginseng:0,nutmeg:0,silk:0,jade:0};self.mortgaged={...self.shares};
+  assert.match(seat().reason,/费用 5₱.*合计 0₱/);
+  room.currentPlayerId='p2';assert.match(seat().reason,/当前轮到 商人2/);
+  room.currentPlayerId='p1';self.stoppedPlacing=true;assert.match(seat().reason,/已停止/);
+  self.stoppedPlacing=false;self.pawnsAvailable=0;assert.match(seat().reason,/没有可用帮手/);
+});
 test('3D 船位来自服务端：负点位、13、抵港和船厂均明确区分',async()=>{
   const {tableState,positionText,shipScale}=await model,room=fixture();
   room.boats[0].position=-1;room.boats[1].position=13;room.boats[2].status='port';room.boats[2].dock='B';

@@ -543,8 +543,10 @@ window.MANILA_UI = (function () {
           if (item.kind === 'boat') { inspectBoat(item.ware); return; }
           var s = manilaModel.tableState(manilaLatest.room, manilaLatest.me.id).slots.find(function (s) { return s.key === item.key; });
           if (!s) return;
-          if (s.canPlace) manilaLatest.handlers.act('place', { location: s.location });
-          else toast(s.detail + (s.available ? ' · 请在你的派遣回合操作，并检查可用资金' : ''), true);
+          // canPlace is a visual hint, not an authority: it may be from before
+          // a turn change. act('place') refreshes before server-side validation.
+          if (s.available) manilaLatest.handlers.act('place', { location: s.location });
+          else toast(s.reason, false);
         },
         onHover: function (item) {
           var hint = document.getElementById('manila-board-hint');
