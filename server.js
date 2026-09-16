@@ -436,6 +436,7 @@ function staticFile(req, res, pathname) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+  if (url.pathname.startsWith('/api/duel/')) return duelHandler(req, res, url);
   if (req.method === 'GET' && url.pathname === '/healthz') {
     return json(res, 200, { ok: true, rooms: Object.keys(state.rooms).length });
   }
@@ -449,6 +450,8 @@ const server = http.createServer((req, res) => {
   if (req.method === 'GET') return staticFile(req, res, decodeURIComponent(url.pathname));
   res.writeHead(405); res.end('Method not allowed');
 });
+
+const duelHandler = require('./lib/duel').install(server);
 
 if (require.main === module) {
   server.listen(PORT, HOST, () => {
