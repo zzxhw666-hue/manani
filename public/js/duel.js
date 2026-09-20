@@ -113,7 +113,7 @@ function muteLabel(){text('mute',muted?'音效 关':'音效 开');$('mute').setA
 $('mute').onclick=()=>{muted=!muted;try{localStorage.setItem('ink-muted',String(muted));}catch{}unlockSound();muteLabel();};muteLabel();
 for(const b of document.querySelectorAll('[data-move]')){
   b.onpointerdown=e=>{if(!canPlay())return;e.preventDefault();b.setPointerCapture(e.pointerId);setKey(b.dataset.move,true);};
-  b.onpointerup=b.onpointercancel=()=>setKey(b.dataset.move,false);
+  b.onlostpointercapture=b.onpointerup=b.onpointercancel=()=>setKey(b.dataset.move,false);
   b.onclick=e=>{if(e.detail===0&&canPlay()){setKey(b.dataset.move,true);setTimeout(()=>setKey(b.dataset.move,false),70);}};
 }
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -135,9 +135,9 @@ function updateUI(){
   $('result').hidden=state.phase!=='over'||performance.now()-resultAt<700;
   if(state.phase==='over'){text('result-title',state.winner===-1?'势均力敌':state.winner===auth.index?'此战告捷':'下次再战');text('result-detail',state.winner===-1?'双方生命相同，本局平局。':`${state.players[state.winner]?.type==='stick'?'火柴人 · 疾风':'叉叉怪 · 磐石'} 赢得本局`);}
   $('training-reset').hidden=!state.training||auth.index!==0;
-  const f=state.fighters[auth.index],names=f?.type==='cross'?['碎石拳','滚雷撞','震地波','崩山印']:['三段拳','追风踢','升龙击','无影破'];
-  document.querySelectorAll('[data-move]').forEach((b,i)=>{b.querySelector('span').textContent=names[i];b.disabled=!canPlay()||f.energy<[0,22,30,100][i];b.classList.toggle('available',i===3&&f.energy>=100);});
-  text('battle-hint',rtt>120?'网络延迟偏高，建议双方使用稳定网络，并选择较近的服务器。':state.training?'训练不限时 · 假人不会主动攻击 · 重置训练可回满生命与气':'J 连按衔接三段攻击 · 冲刺有短暂无敌 · O 奥义可破防');
+  const f=state.fighters[auth.index],names=f?.type==='cross'?['磐石四式','滚雷撞','震地波','崩山印']:['疾风四式','追风踢','升龙击','无影破'];
+  document.querySelectorAll('[data-move]').forEach((b,i)=>{b.querySelector('span').textContent=i===0&&f.attack?.key==='light'?f.attack.name:names[i];if(i===0)b.querySelector('small').textContent=f.attack?.key==='light'?`${f.attack.chain}/4 · ${f.attack.chain===4?'终结段':f.attack.queued?'已衔接':'J 接下一段'}`:'四段连击';b.disabled=!canPlay()||f.energy<[0,22,30,100][i];b.classList.toggle('available',i===3&&f.energy>=100);});
+  text('battle-hint',rtt>120?'网络延迟偏高，建议双方使用稳定网络，并选择较近的服务器。':state.training?'每按一次 J 衔接一段 · 训练不限时 · 重置可回满生命与气':'J 连按衔接四段攻击 · 冲刺有短暂无敌 · O 奥义可破防');
 }
 function frame(now){
   if(now-lastUI>100){lastUI=now;updateUI();}

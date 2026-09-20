@@ -1,7 +1,7 @@
 'use strict';
 (function(root){
   const core=typeof module!=='undefined'&&module.exports?require('./duel-core'):root.InkDuelCore;
-  const copy=f=>({...f,input:{...f.input},previous:{...f.previous},pulses:{...f.pulses},attack:f.attack?{...f.attack}:null});
+  const copy=f=>({...f,projectile:f.projectile?{...f.projectile}:null,mark:f.mark?{...f.mark}:null,input:{...f.input},previous:{...f.previous},pulses:{...f.pulses},attack:f.attack?{...f.attack}:null});
   class Predictor {
     constructor(){this.reset();}
     reset(){this.samples=[];this.inputs=[];this.state=null;this.at=0;this.correction=null;this.index=undefined;this.rtt=0;}

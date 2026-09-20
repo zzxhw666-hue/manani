@@ -55,3 +55,13 @@ test('真实 WebSocket 注入单程 60ms 延迟：本机先响应、服务器确
   await delay(100);const latest=client.messages.filter(m=>m.type==='state').at(-1).state;
   assert.equal(latest.fighters[0].x,stopped.fighters[0].x);assert.equal(latest.fighters[0].input.right,false);
 });
+test('WebSocket 同步四段普攻、飞行手里剑与锁定落点',async t=>{
+ const {post,connect}=await setup(t),auth=await post('create',{});await post('add-dummy',auth);
+ const client=await connect(auth);await client.wait(m=>m.type==='welcome');await post('reset-training',auth);
+ await client.wait(m=>m.type==='state'&&m.state.phase==='fight');let seq=0;
+ const press=()=>{for(const input of [{},{light:true}])client.ws.send(JSON.stringify({type:'input',seq:++seq,input}));};
+ press();for(const stage of [1,2,3]){await client.wait(m=>m.type==='state'&&m.state.fighters[0].attack?.chain===stage);press();}
+ const projectile=(await client.wait(m=>m.type==='state'&&!!m.state.fighters[0].projectile)).state.fighters[0];assert.ok(projectile.mark);assert.equal(projectile.projectile.damage,7);
+ const dive=(await client.wait(m=>m.type==='state'&&m.state.fighters[0].attack?.chain===4)).state.fighters[0];assert.equal(dive.attack.targetX,projectile.mark.x);assert.equal(dive.attack.motion,'dive');
+ await post('leave',auth);
+});
