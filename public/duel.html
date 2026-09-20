@@ -1,8 +1,40 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>墨斗 · 火柴人与叉叉怪 | 同桌</title><link rel="stylesheet" href="/css/duel.css"></head><body>
-<header><a href="/">同桌 <small>TABLE CLUB</small></a><span>试炼场 / 003</span><b>ONLINE DUEL · DEMO 01</b></header>
-<main><section class="intro"><div><p class="eyebrow">一笔成形，出招见真章。</p><h1>火柴人 <i>对战</i> 叉叉怪<span>墨斗</span></h1><p>简单的身躯，不简单的战斗。两大阵营，在废墟之上交锋。</p></div><div class="seal">双人<br>在线</div></section>
-<section class="arena-wrap"><div class="arena-top"><span>荒原遗迹 <small>THE INK WASTELAND</small></span><span id="network">尚未入场</span></div><canvas id="arena" width="1200" height="560" aria-label="实时双人格斗场"></canvas><div class="arena-bottom"><span id="room-label">创建房间，邀请一位对手</span><button id="copy" hidden>复制邀请链接 ↗</button><span id="status" role="status">等待入场</span></div></section>
-<section class="desk"><article class="room-panel"><p class="eyebrow">01 / 入场</p><h2>约一场，见真章。</h2><div id="entry"><label>你的称呼<input id="name" maxlength="16" placeholder="无名侠客"></label><label>选择阵营<select id="faction"><option value="stick">火柴人 · 疾风流</option><option value="cross">叉叉怪 · 磐石流</option></select></label><button id="create" class="primary">创建双人房间 →</button><div class="join"><input id="code" maxlength="6" placeholder="6 位房间码" aria-label="房间码"><button id="join">加入</button></div><small>加入者自动成为另一阵营。双方准备后开战。</small></div><div id="joined" hidden><p id="players"></p><button id="dummy" hidden>添加测试假人</button><p id="dummy-hint" class="muted" hidden>假人不会主动移动或攻击，可受击、击退与击飞；击败后点击准备再战。</p><button id="ready" class="primary">准备开战</button><button id="leave">退出房间</button><p class="muted">邀请朋友在另一台电脑打开链接。掉线时暂停，刷新可重连。</p></div><p id="error" role="alert"></p></article>
-<article class="character"><p class="eyebrow">02 / 火柴人阵营</p><h2>疾风 <small>快 · 连 · 破</small></h2><p>轻盈游走，三段快拳衔接突进；第三击挑空，升龙追击。</p><dl><dt>J · 三段拳</dt><dd>连续点按，第三段击飞</dd><dt>U · 追风踢 <em>22 气</em></dt><dd>快速贴身，抢占先手</dd><dt>I · 升龙击 <em>30 气</em></dt><dd>近身挑空，打断进攻</dd><dt>O · 无影破 <em>满气</em></dt><dd>长距离爆发，贯穿防御</dd></dl></article>
-<article class="character"><p class="eyebrow">03 / 叉叉怪阵营</p><h2>磐石 <small>重 · 撞 · 震</small></h2><p>圆滚滚的身体，藏着沉重的力量。以冲撞压近，用震地控制距离。</p><dl><dt>J · 碎石拳</dt><dd>重型三段攻击，伤害更高</dd><dt>U · 滚雷撞 <em>22 气</em></dt><dd>滚动冲锋，将对手撞退</dd><dt>I · 震地波 <em>30 气</em></dt><dd>范围震击，将对手抛起</dd><dt>O · 崩山印 <em>满气</em></dt><dd>大范围重击，贯穿防御</dd></dl></article></section>
-<footer><div><kbd>A</kbd><kbd>D</kbd> 移动 <kbd>W</kbd> 跳跃 <kbd>空格</kbd> 冲刺 <kbd>S</kbd> 防御</div><span>J 攻击 / U I 技能 / O 大招 · 桌面键盘体验</span></footer></main><script src="/js/duel-renderer.js"></script><script src="/js/duel.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#26362c"><title>墨斗 · 同桌</title>
+  <link rel="stylesheet" href="/css/duel.css">
+</head>
+<body>
+<header class="site-header" id="site-header"><a href="/" class="brand">同桌 <small>TABLE CLUB</small></a><span>墨斗 / INK DUEL</span><button class="quiet" data-help>玩法与操作 ↗</button></header>
+<main>
+  <section id="lobby-screen" class="lobby-screen" aria-label="格斗大厅">
+    <div class="intro"><p class="eyebrow">一笔成形，出招见真章。</p><h1>墨斗<span>壹</span></h1><p class="subtitle">火柴人的疾风，叉叉怪的磐石。<br>约一位朋友，打一场痛快的对决。</p><div class="tags"><span>双人在线</span><span>原创角色</span><span>水墨格斗</span></div></div>
+    <div class="lobby-art" aria-hidden="true"><svg viewBox="0 0 620 340"><circle cx="445" cy="93" r="65" fill="#c7ccba"/><path d="M0 273 80 207 161 251 264 164 366 230 472 183 620 256V340H0" fill="#b2bea7"/><path d="M0 301 144 235 288 282 434 210 620 270V340H0" fill="#8c9d81"/><path d="M0 320H620" stroke="#3a503e" stroke-width="9"/><g stroke="#29392d" stroke-width="9" stroke-linecap="round" fill="none"><circle cx="200" cy="160" r="25" fill="#eae5d7"/><path d="M198 188 185 254 139 313M185 254 244 311M197 205 239 221 267 198M193 209 155 233 134 208"/><path d="M181 190 143 181 102 201 151 194" stroke="#52694d"/><circle cx="447" cy="261" r="51" fill="#eae5d7"/><path d="m428 239 39 41m0-41-39 41M405 281 389 295M489 279 505 292M425 307 417 317m53-10 11 10"/></g><text x="306" y="239" fill="#a3593d" font-family="serif" font-size="40" font-style="italic">VS</text></svg><span>荒原遗迹 · THE INK WASTELAND</span></div>
+    <section class="entry-card" aria-labelledby="entry-heading"><div class="entry-heading"><p class="eyebrow">挑选阵营，踏入战场</p><h2 id="entry-heading">准备入场</h2></div>
+      <label for="name">你的称呼<input id="name" maxlength="16" autocomplete="nickname" placeholder="无名侠客"></label>
+      <fieldset><legend>创建房间时使用的角色</legend><div class="factions"><button class="faction selected" data-faction="stick" aria-pressed="true"><span class="faction-symbol">○</span><strong>火柴人 · 疾风</strong><small>灵活突进 / 连击挑空</small></button><button class="faction" data-faction="cross" aria-pressed="false"><span class="faction-symbol">⊗</span><strong>叉叉怪 · 磐石</strong><small>滚动冲撞 / 震地压制</small></button></div></fieldset>
+      <button id="create" class="primary">创建对战房间 <span>→</span></button><div class="divider">或加入朋友的房间</div><form id="join-form" class="join"><input id="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="输入 6 位房间码" aria-label="房间码" required><button id="join" type="submit">加入 →</button></form><p class="fine">支持桌面键盘。想先练练手？建房后添加训练假人。</p>
+    </section><div class="lobby-foot"><span>简单的身躯，不简单的战斗。</span><span>INK DUEL · 1.0</span></div>
+  </section>
+  <section id="room-screen" class="room-screen" hidden aria-label="等待房间">
+    <div class="room-heading"><div><p class="eyebrow">对决，从这里开始</p><h1 id="room-title">等一位对手</h1></div><button id="leave-room" class="quiet">退出房间</button></div>
+    <div class="invite-bar"><span>房间码 <strong id="room-code-label"></strong></span><button id="copy">复制邀请链接 ↗</button></div>
+    <div class="seats"><article class="seat" id="seat-0"></article><div class="versus">VS</div><article class="seat" id="seat-1"></article></div>
+    <p id="room-status" role="status" class="room-status"></p><div class="room-actions"><button id="dummy" class="secondary">添加训练假人</button><button id="ready" class="primary">准备开战 →</button></div><p class="fine">双方准备后自动进入战场。假人不主动行动，可正常受击、倒地。</p>
+  </section>
+  <section id="battle-screen" class="battle-screen" hidden aria-label="对战场景">
+    <nav class="battle-nav"><div><b>墨斗</b><span>荒原遗迹</span><small id="battle-code"></small></div><div class="battle-options"><span id="network" role="status">连接中</span><button id="mute" aria-label="关闭音效" aria-pressed="false">音效 开</button><button id="fullscreen">全屏</button><button id="exit-battle">退出</button></div></nav>
+    <div class="stage"><canvas id="arena" width="1200" height="560" aria-label="实时双人格斗场" tabindex="0"></canvas>
+      <section id="result" class="result" hidden aria-label="对局结果"><p class="eyebrow">本场对决结束</p><h2 id="result-title"></h2><p id="result-detail"></p><div><button id="rematch" class="primary">准备再战</button><button id="back-room">返回房间</button></div></section>
+      <div id="reconnecting" class="connection-cover" hidden><strong>正在恢复连接</strong><span>对局已暂停，连接恢复后继续</span></div>
+    </div>
+    <div class="combat-dock"><div class="movement"><span><kbd>A</kbd><kbd>D</kbd> 移动</span><span><kbd>W</kbd> 跳跃</span><span><kbd>空格</kbd> 冲刺</span><span><kbd>S</kbd> 防御</span></div><div class="skill-dock" id="skills"><button data-move="light"><kbd>J</kbd><span>普通攻击</span><small>三段连击</small></button><button data-move="skill"><kbd>U</kbd><span>突进</span><small>22 气</small></button><button data-move="special"><kbd>I</kbd><span>范围技</span><small>30 气</small></button><button data-move="ultimate"><kbd>O</kbd><span>奥义</span><small>100 气</small></button></div><button id="training-reset" class="quiet" hidden>重置训练 · 满气</button></div>
+    <p class="battle-hint" id="battle-hint">J 连按衔接三段攻击 · 冲刺有短暂无敌 · O 奥义可破防</p>
+  </section>
+</main>
+<div id="toast" role="status" hidden></div>
+<dialog id="help-dialog"><button class="dialog-close" data-close aria-label="关闭玩法说明">×</button><p class="eyebrow">掌握节奏，见招拆招</p><h2>玩法与操作</h2><p>99 秒内击败对手，或在时间结束时保有更多生命。攻击命中获得气，气会缓慢恢复；技能消耗气，满气释放奥义。</p><div class="help-keys"><p><kbd>A</kbd><kbd>D</kbd> 移动　<kbd>W</kbd> 跳跃　<kbd>空格</kbd> 冲刺</p><p><kbd>S</kbd> 防御　<kbd>J</kbd> 三段普攻　<kbd>U</kbd><kbd>I</kbd> 技能　<kbd>O</kbd> 奥义</p></div><div class="help-roles"><article><h3>火柴人 · 疾风</h3><p>追风踢（U）快速贴身，升龙击（I）近身挑空，无影破（O）长距离爆发。</p></article><article><h3>叉叉怪 · 磐石</h3><p>滚雷撞（U）滚动冲锋，震地波（I）范围击飞，崩山印（O）大范围重击。</p></article></div><p class="fine">防御降低伤害，但无法挡住奥义。重击后有倒地与起身保护。训练不限时，可随时重置为满血满气。</p></dialog>
+<dialog id="exit-dialog"><h2>退出这场对决？</h2><p>退出会关闭当前房间，对方也将返回大厅。</p><div class="dialog-actions"><button data-close>继续对战</button><button id="confirm-exit" class="danger">退出房间</button></div></dialog>
+<script src="/js/duel-core.js"></script><script src="/js/duel-netcode.js"></script><script src="/js/duel-renderer.js"></script><script src="/js/duel.js"></script>
+</body></html>

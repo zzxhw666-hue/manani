@@ -11,7 +11,7 @@ test('假人不需要心跳、不主动行动，正常受击；真人掉线仍�
   const x=r.fighters[1].x;advance(r,60);
   assert.equal(r.paused,false);assert.equal(r.fighters[1].x,x);assert.equal(r.fighters[0].hp,100);assert.equal(r.fighters[1].attack,null);
   startAttack(r.fighters[0],'light');advance(r);assert.equal(r.fighters[1].hp,94);assert.ok(r.fighters[1].x>x);
-  r.time=.001;advance(r);assert.equal(r.phase,'over');assert.equal(r.players[1].ready,true);assert.equal(r.players[0].ready,false);
+  r.time=.001;advance(r);assert.equal(r.phase,'fight');r.fighters[1].hp=0;advance(r);assert.equal(r.phase,'over');assert.equal(r.players[1].ready,true);assert.equal(r.players[0].ready,false);
   reset(r);assert.equal(r.fighters[1].hp,100);r.players[0].lastSeen=0;step(r);assert.equal(r.paused,true);
 });
 test('房主添加移除假人、独自开战，拒绝满房与非房主操作和假人凭证',async t=>{

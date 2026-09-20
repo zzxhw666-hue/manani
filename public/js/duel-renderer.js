@@ -141,7 +141,7 @@
     }
     packet(state,now){
       if(state===this.previous)return;
-      if(!state||!this.previous||state.tick<this.previous.tick||state.code!==this.previous.code){this.visual=[];this.seen.clear();this.particles=[];}
+      if(!state||!this.previous||state.round!==this.previous.round||state.tick<this.previous.tick||state.code!==this.previous.code){this.visual=[];this.seen.clear();this.particles=[];}
       this.previous=state;this.packetAt=now;
       for(const e of state?.effects||[])if(!this.seen.has(e.id)){
         this.seen.add(e.id);const hit=e.kind!=='land';if(hit){this.onImpact?.();if(!this.reduced)this.shake=e.heavy?7:3;}
@@ -158,7 +158,7 @@
       const fighters=state?.fighters.length===2?state.fighters:[{type:'stick',x:370,y:0,face:1,action:'idle',hp:100,energy:0},{type:'cross',x:830,y:0,face:-1,action:'idle',hp:100,energy:0}];
       fighters.forEach((f,i)=>{
         let v=this.visual[i];if(!v)v=this.visual[i]={x:f.x,y:f.y,pose:pose(f,t),trail:[]};
-        const blend=1-Math.exp(-38*dt);v.x=mix(v.x,f.x,blend);v.y=mix(v.y,f.y,blend);
+        const blend=i===index?1:1-Math.exp(-60*dt);v.x=mix(v.x,f.x,blend);v.y=mix(v.y,f.y,blend);
         const draw={...f,x:v.x,y:v.y};if(draw.attack)draw.attack={...draw.attack,age:Math.min(draw.attack.duration,draw.attack.age+(frozen?0:Math.min(.034,(now-this.packetAt)/1000)))};
         const squashTarget=(f.down==='floor'||(f.action==='ko'&&!f.y)) ? .53 : f.down==='rise'?mix(.53,1,smooth(1-f.downTime/.38)):1;
         v.squash=mix(v.squash??1,squashTarget,1-Math.exp(-22*dt));draw.visualSquash=v.squash;
@@ -179,8 +179,8 @@
       // HUD remains fixed while the arena reacts to a hit.
       c.fillStyle='#eee8d9dc';c.fillRect(25,16,435,87);c.fillRect(740,16,435,87);
       fighters.forEach((f,i)=>{const x=i?758:42;c.fillStyle='#c4c8b7';c.fillRect(x,55,400,13);c.fillStyle='#40573f';c.fillRect(i?x+400*(1-f.hp/100):x,55,400*f.hp/100,13);c.fillStyle='#aaa997';c.fillRect(x,77,400,3);c.fillStyle=f.energy>=100?'#b78b43':'#a34d35';c.fillRect(x,77,400*f.energy/100,3);this.text(f.type==='stick'?'火柴人 / 疾风':'叉叉怪 / 磐石',x,40,18);this.text(Math.ceil(f.hp)+' HP',x+400,40,13,'#67715e','right');this.text(f.energy>=100?'气满 · O 释放奥义':Math.floor(f.energy)+' 气',x+400,97,11,'#8b5541','right');if(f.combo>1)this.text(f.combo+' 连击',i?1020:100,169,29,'#a34d35');if(f.down)this.text(f.hp<=0?'倒地 · K.O.':f.down==='rise'?'起身保护':f.down==='floor'?'倒地':'浮空',i?1040:120,126,13,'#8b5541');});
-      this.text(state?Math.ceil(state.time):99,600,72,40,'#30392d','center');this.text('ROUND 01',600,96,10,'#737c69','center');
-      let title='',sub='';if(!state){title='以墨为形 · 以气为锋';sub='创建房间 / 邀请好友 / 或添加测试假人';}else if(state.paused||stale){title='等待重连';sub='对局已暂停，请保持页面开启';}else if(state.phase==='waiting'){title='等待挑战者';sub='房间 '+state.code+' · 准备后开战';}else if(state.phase==='countdown'){title=String(Math.ceil(state.countdown));sub='准备交锋';}else if(state.phase==='over'){title=state.winner===-1?'平局':(state.fighters[state.winner].type==='stick'?'火柴人':'叉叉怪')+' 获胜';sub='点击「准备再战」开启下一局';}
+      this.text(state?.training?'∞':state?Math.ceil(state.time):99,600,72,40,'#30392d','center');this.text(state?.training?'TRAINING':'ROUND '+String(state?.round||1).padStart(2,'0'),600,96,10,'#737c69','center');
+      let title='',sub='';if(!state){title='以墨为形 · 以气为锋';sub='创建房间 / 邀请好友 / 或添加测试假人';}else if(state.paused||stale){title='等待重连';sub='对局已暂停，请保持页面开启';}else if(state.phase==='waiting'){title='等待挑战者';sub='房间 '+state.code+' · 准备后开战';}else if(state.phase==='countdown'){title=String(Math.ceil(state.countdown));sub='准备交锋';}else if(state.phase==='over'&&!state.uiOverlay){title=state.winner===-1?'平局':(state.fighters[state.winner].type==='stick'?'火柴人':'叉叉怪')+' 获胜';sub='点击「准备再战」开启下一局';}
       if(title){c.fillStyle='#ece6d8d9';c.fillRect(330,157,540,103);this.text(title,600,204,33,'#2e382a','center');this.text(sub,600,235,13,'#717965','center');}
       this.text('荒原遗迹  /  风起，墨落。',600,534,12,'#596d51','center');
     }
