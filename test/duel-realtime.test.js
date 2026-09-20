@@ -61,7 +61,7 @@ test('WebSocket 同步四段普攻、飞行手里剑与锁定落点',async t=>{
  await client.wait(m=>m.type==='state'&&m.state.phase==='fight');let seq=0;
  const press=()=>{for(const input of [{},{light:true}])client.ws.send(JSON.stringify({type:'input',seq:++seq,input}));};
  press();for(const stage of [1,2,3]){await client.wait(m=>m.type==='state'&&m.state.fighters[0].attack?.chain===stage);press();}
- const projectile=(await client.wait(m=>m.type==='state'&&!!m.state.fighters[0].projectile)).state.fighters[0];assert.ok(projectile.mark);assert.equal(projectile.projectile.damage,7);
+ const projectile=(await client.wait(m=>m.type==='state'&&!!m.state.fighters[0].projectile)).state.fighters[0];assert.ok(projectile.mark);assert.equal(projectile.projectile.damage,3);
  const dive=(await client.wait(m=>m.type==='state'&&m.state.fighters[0].attack?.chain===4)).state.fighters[0];assert.equal(dive.attack.targetX,projectile.mark.x);assert.equal(dive.attack.motion,'dive');
  await post('leave',auth);
 });

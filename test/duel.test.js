@@ -3,14 +3,14 @@ const test=require('node:test'),assert=require('node:assert/strict'),http=requir
 const {reset,step,startAttack,install}=require('../lib/duel');
 function room(){const r={players:[{type:'stick',lastSeen:Date.now()},{type:'cross',lastSeen:Date.now()}]};reset(r);r.countdown=0;r.phase='fight';r.fighters[0].x=500;r.fighters[1].x=560;return r;}
 function advance(r,n=20){for(let i=0;i<n;i++)step(r);}
-test('命中、格挡、消耗和攻击距离由服务端判定',()=>{let r=room();startAttack(r.fighters[0],'light');advance(r);assert.equal(r.fighters[1].hp,94);r=room();r.fighters[1].input={block:true};startAttack(r.fighters[0],'light');advance(r);assert.equal(r.fighters[1].hp,99);r=room();startAttack(r.fighters[0],'ultimate');assert.equal(r.fighters[0].attack,null);r.fighters[0].energy=100;startAttack(r.fighters[0],'ultimate');assert.equal(r.fighters[0].energy,0);advance(r,35);assert.equal(r.fighters[1].hp,70);r=room();r.fighters[1].x=1000;startAttack(r.fighters[0],'light');advance(r);assert.equal(r.fighters[1].hp,100);});
+test('命中、格挡、消耗和攻击距离由服务端判定',()=>{let r=room();startAttack(r.fighters[0],'light');advance(r);assert.equal(r.fighters[1].hp,98);r=room();r.fighters[1].input={block:true};startAttack(r.fighters[0],'light');advance(r);assert.equal(r.fighters[1].hp,99);r=room();startAttack(r.fighters[0],'ultimate');assert.equal(r.fighters[0].attack,null);r.fighters[0].energy=100;startAttack(r.fighters[0],'ultimate');assert.equal(r.fighters[0].energy,0);advance(r,180);assert.equal(r.fighters[1].hp,42);r=room();r.fighters[1].x=1000;startAttack(r.fighters[0],'light');advance(r);assert.equal(r.fighters[1].hp,100);});
 test('掉线暂停、时间胜负和再战重置',()=>{const r=room();r.players[1].lastSeen=0;advance(r);assert.equal(r.paused,true);assert.equal(r.time,99);r.players[1].lastSeen=Date.now();r.time=.01;r.fighters[1].hp=90;step(r);assert.equal(r.winner,0);assert.equal(r.phase,'over');reset(r);assert.equal(r.fighters[1].hp,100);assert.equal(r.countdown,3);});
 test('两个独立客户端建房、加入、鉴权、同步输入和准备再战',async t=>{let handle;const server=http.createServer((req,res)=>handle(req,res,new URL(req.url,'http://localhost')));handle=install(server);await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>server.close(r)));const base=`http://127.0.0.1:${server.address().port}/api/duel/`;const post=async(a,b)=>{const r=await fetch(base+a,{method:'POST',body:JSON.stringify(b)});return {status:r.status,data:await r.json()};};const a=(await post('create',{type:'stick',name:'甲'})).data,b=(await post('join',{code:a.code,name:'乙'})).data;assert.equal(b.index,1);assert.equal((await post('join',{code:a.code})).status,400);assert.equal((await post('input',{...a,token:'fake'})).status,400);assert.equal((await post('ready',a)).status,200);assert.equal((await post('ready',b)).status,200);const abort=new AbortController();const stream=await fetch(base+'events?'+new URLSearchParams(a),{signal:abort.signal});const reader=stream.body.getReader();const chunk=await reader.read();const view=JSON.parse(new TextDecoder().decode(chunk.value).split('data: ')[1].trim());assert.equal(view.phase,'countdown');assert.equal(view.players.length,2);assert.ok(!JSON.stringify(view).includes(a.token));abort.abort();await post('input',{...a,input:{right:true},hp:999});await post('leave',a);assert.equal((await post('ping',b)).status,400);});
 test('假人不需要心跳、不主动行动，正常受击；真人掉线仍暂停',()=>{
   const r=room();r.players[1]={type:'cross',dummy:true,ready:true};r.fighters[1].x=570;
   const x=r.fighters[1].x;advance(r,60);
   assert.equal(r.paused,false);assert.equal(r.fighters[1].x,x);assert.equal(r.fighters[0].hp,100);assert.equal(r.fighters[1].attack,null);
-  startAttack(r.fighters[0],'light');advance(r);assert.equal(r.fighters[1].hp,94);assert.ok(r.fighters[1].x>x);
+  startAttack(r.fighters[0],'light');advance(r);assert.equal(r.fighters[1].hp,98);assert.ok(r.fighters[1].x>x);
   r.time=.001;advance(r);assert.equal(r.phase,'fight');r.fighters[1].hp=0;advance(r);assert.equal(r.phase,'over');assert.equal(r.players[1].ready,true);assert.equal(r.players[0].ready,false);
   reset(r);assert.equal(r.fighters[1].hp,100);r.players[0].lastSeen=0;step(r);assert.equal(r.paused,true);
 });
@@ -30,7 +30,7 @@ test('房主添加移除假人、独自开战，拒绝满房与非房主操作�
 test('重击浮空后落地倒下，倒地期间不能出招，起身后恢复并短暂无敌',()=>{
   const r=room(), attacker=r.fighters[0], victim=r.fighters[1];
   attacker.energy=100;startAttack(attacker,'special');advance(r,22);
-  assert.equal(victim.down,'air');assert.ok(victim.y>0);assert.equal(victim.hp,84);
+  assert.equal(victim.down,'air');assert.ok(victim.y>0);assert.equal(victim.hp,78);
   for(let n=0;n<120&&victim.down!=='floor';n++)step(r);
   assert.equal(victim.down,'floor');assert.equal(victim.y,0);
   victim.energy=100;startAttack(victim,'ultimate');assert.equal(victim.attack,null);assert.equal(victim.energy,100);

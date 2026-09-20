@@ -84,7 +84,7 @@ setInterval(()=>{
   if(socket?.readyState===WebSocket.OPEN&&transport==='ws')socket.send(JSON.stringify({type:'ping',at:performance.now()}));
   sendInput();updateUI();
 },500);
-function canPlay(){return screen==='battle'&&state?.phase==='fight'&&!state.paused&&performance.now()-receivedAt<1500&&!document.querySelector('dialog[open]');}
+function canPlay(){return screen==='battle'&&state?.phase==='fight'&&!state.paused&&!state.fighters[auth.index]?.stun&&!state.fighters[auth.index]?.down&&performance.now()-receivedAt<1500&&!document.querySelector('dialog[open]');}
 window.addEventListener('keydown',e=>{const key=keyMap[e.code];if(!key||/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)||!canPlay())return;e.preventDefault();if(!e.repeat)setKey(key,true);});
 window.addEventListener('keyup',e=>{if(keyMap[e.code])setKey(keyMap[e.code],false);});
 window.addEventListener('blur',releaseKeys);document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseKeys();});
@@ -135,9 +135,9 @@ function updateUI(){
   $('result').hidden=state.phase!=='over'||performance.now()-resultAt<700;
   if(state.phase==='over'){text('result-title',state.winner===-1?'势均力敌':state.winner===auth.index?'此战告捷':'下次再战');text('result-detail',state.winner===-1?'双方生命相同，本局平局。':`${state.players[state.winner]?.type==='stick'?'火柴人 · 疾风':'叉叉怪 · 磐石'} 赢得本局`);}
   $('training-reset').hidden=!state.training||auth.index!==0;
-  const f=state.fighters[auth.index],names=f?.type==='cross'?['磐石四式','滚雷撞','震地波','崩山印']:['疾风四式','追风踢','升龙击','无影破'];
-  document.querySelectorAll('[data-move]').forEach((b,i)=>{b.querySelector('span').textContent=i===0&&f.attack?.key==='light'?f.attack.name:names[i];if(i===0)b.querySelector('small').textContent=f.attack?.key==='light'?`${f.attack.chain}/4 · ${f.attack.chain===4?'终结段':f.attack.queued?'已衔接':'J 接下一段'}`:'四段连击';b.disabled=!canPlay()||f.energy<[0,22,30,100][i];b.classList.toggle('available',i===3&&f.energy>=100);});
-  text('battle-hint',rtt>120?'网络延迟偏高，建议双方使用稳定网络，并选择较近的服务器。':state.training?'每按一次 J 衔接一段 · 训练不限时 · 重置可回满生命与气':'J 连按衔接四段攻击 · 冲刺有短暂无敌 · O 奥义可破防');
+  const f=state.fighters[auth.index],moves=InkDuelCore.SKILLS[f.type],names=[f.type==='cross'?'磐石四式':'疾风四式',moves.skill.name,moves.special.name,moves.ultimate.name];
+  document.querySelectorAll('[data-move]').forEach((b,i)=>{b.querySelector('span').textContent=i===0&&f.attack?.key==='light'?f.attack.name:names[i];if(i===0)b.querySelector('small').textContent=f.attack?.key==='light'?`${f.attack.chain}/4 · ${f.attack.chain===4?'终结段':f.attack.queued?'已衔接':'J 接下一段'}`:'四段连击';b.disabled=!canPlay()||f.energy<[0,22,30,100][i];b.classList.toggle('available',i===3&&f.energy>=100);if(i>0){b.style.setProperty('--move-color',moves[b.dataset.move].color);b.classList.add('colored-skill');b.title=names[i]+' · 技能施放抵抗普攻打断';}});
+  text('battle-hint',f.stun>0||f.down?'受击僵直 / 倒地 · 暂时无法移动、攻击或释放技能':InkDuelCore.hasLightArmor(f)?'技能霸体 · 普攻仍会扣血，但无法打断；技能命中可以打断':rtt>120?'网络延迟偏高，建议双方使用稳定网络，并选择较近的服务器。':state.training?'每按一次 J 衔接一段 · 训练不限时 · 重置可回满生命与气':'普攻压制 / 技能反制 · U / I 技能霸体 · O 大招破防');
 }
 function frame(now){
   if(now-lastUI>100){lastUI=now;updateUI();}

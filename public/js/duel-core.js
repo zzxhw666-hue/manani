@@ -2,24 +2,46 @@
 (function(root){
 const DT = 1 / 60;
 const TYPES = {
-  stick: { name: '火柴人', speed: 290, light: 6, reach: 78 },
-  cross: { name: '叉叉怪', speed: 235, light: 9, reach: 86 },
+  stick: { name: '火柴人', speed: 290, light: 2, reach: 78 },
+  cross: { name: '叉叉怪', speed: 235, light: 3, reach: 86 },
 };
 // Each press advances one authored move; only one follow-up can be queued.
 const LIGHTS = {
   stick: [
-    {name:'推掌',duration:.38,active:.10,linkAt:.27,reach:88,damage:6,knock:14,stun:.44},
-    {name:'疾进',duration:.50,active:.23,linkAt:.38,reach:100,damage:8,knock:12,stun:.65,motion:'rush',distance:132},
-    {name:'退影镖',duration:.84,active:.18,linkAt:.69,reach:0,damage:7,knock:6,stun:.90,motion:'retreat',distance:128},
-    {name:'落星坠',duration:.96,active:.62,reach:115,damage:14,knock:85,stun:.55,motion:'dive',launch:true},
+    {name:'推掌',duration:.38,active:.10,linkAt:.27,reach:88,damage:2,knock:14,stun:.44},
+    {name:'疾进',duration:.50,active:.23,linkAt:.38,reach:100,damage:2,knock:12,stun:.65,motion:'rush',distance:132},
+    {name:'退影镖',duration:.84,active:.18,linkAt:.69,reach:0,damage:3,knock:6,stun:.90,motion:'retreat',distance:128},
+    {name:'落星坠',duration:.96,active:.62,reach:115,damage:5,knock:85,stun:.55,motion:'dive',launch:true},
   ],
   cross: [
-    {name:'磐石推',duration:.44,active:.14,linkAt:.32,reach:94,damage:9,knock:16,stun:.46},
-    {name:'团身碾',duration:.58,active:.25,linkAt:.44,reach:105,damage:8,knock:10,stun:.70,motion:'roll',distance:132},
-    {name:'弹山锤',duration:.72,active:.44,linkAt:.59,reach:115,damage:9,knock:8,stun:.70,motion:'bounce',distance:52},
-    {name:'十字崩',duration:.88,active:.47,reach:165,damage:15,knock:100,stun:.60,motion:'quake',launch:true},
+    {name:'磐石推',duration:.44,active:.14,linkAt:.32,reach:94,damage:3,knock:16,stun:.46},
+    {name:'团身碾',duration:.58,active:.25,linkAt:.44,reach:105,damage:3,knock:10,stun:.70,motion:'roll',distance:132},
+    {name:'弹山锤',duration:.72,active:.44,linkAt:.59,reach:115,damage:3,knock:8,stun:.70,motion:'bounce',distance:52},
+    {name:'十字崩',duration:.88,active:.47,reach:165,damage:5,knock:100,stun:.60,motion:'quake',launch:true},
   ],
 };
+// Timelines drive both authoritative collision and predicted movement. Strike data is immutable.
+const SKILLS = {
+  stick: {
+    skill:{name:'青岚连踢',color:'#35d8ed',motion:'gale',duration:.86,active:.27,cost:22,damage:18,knock:12,stun:.48,
+      strikes:[{at:.27,damage:9,reach:120},{at:.47,damage:9,reach:140,knock:65}]},
+    special:{name:'紫电升空斩',color:'#aa83ff',motion:'thunder',duration:1.12,active:.24,cost:30,damage:22,knock:38,stun:.72,
+      strikes:[{at:.24,damage:22,reach:125,height:210,anchor:'ground',launch:true}]},
+    ultimate:{name:'天隙 · 千影雷葬',color:'#cfb4ff',motion:'storm',duration:2.50,active:.78,cost:100,damage:58,knock:2,stun:.60,
+      strikes:[{at:.78,damage:8,reach:145,height:230,anchor:'target'},{at:1.08,damage:8,reach:145,height:230,anchor:'target'},
+        {at:1.38,damage:8,reach:145,height:230,anchor:'target'},{at:1.85,damage:34,reach:180,height:260,anchor:'target',knock:140,launch:true,final:true}]},
+  },
+  cross: {
+    skill:{name:'熔岩破城钻',color:'#ff873d',motion:'magma',duration:1.02,active:.38,cost:22,damage:20,knock:80,stun:.60,
+      strikes:[{at:.38,damage:20,reach:135}]},
+    special:{name:'地脉晶棘阵',color:'#46e4a5',motion:'crystal',duration:1.25,active:.38,cost:30,damage:30,knock:4,stun:.38,
+      strikes:[{at:.38,damage:10,reach:95,height:115,anchor:'origin',offset:85},{at:.60,damage:10,reach:95,height:115,anchor:'origin',offset:165},
+        {at:.82,damage:10,reach:95,height:115,anchor:'origin',offset:245,knock:55,launch:true}]},
+    ultimate:{name:'赤曜 · 陨星灭界',color:'#ff6459',motion:'meteor',duration:2.65,active:1.80,cost:100,damage:62,knock:170,stun:1,
+      strikes:[{at:1.80,damage:62,reach:235,height:240,anchor:'target',launch:true,final:true}]},
+  },
+};
+function hasLightArmor(f){return !!f.attack&&f.attack.key!=='light'&&!f.stun&&!f.down&&f.hp>0;}
 const clampX=x=>Math.max(60,Math.min(1140,x));
 const unit=t=>Math.max(0,Math.min(1,t));
 const ease=t=>{t=unit(t);return t*t*(3-2*t);};
@@ -34,24 +56,17 @@ function reset(room) {
 }
 function startAttack(f, key, enemy) {
   if (!['light','skill','special','ultimate'].includes(key)) return;
-  if (f.down || f.hp <= 0) return;
-  const cross = f.type === 'cross';
-  const moves = {
-    light: { duration: .28, active: .09, reach: TYPES[f.type].reach, damage: TYPES[f.type].light, knock: 22, stun: .23 },
-    skill: { duration: .65, active: .20, reach: 105, damage: cross ? 16 : 12, knock: 100, stun: .36, cost: 22, rush: cross ? 480 : 570 },
-    special: { duration: .75, active: .26, reach: cross ? 175 : 100, damage: 16, knock: 45, stun: .48, cost: 30, launch: true },
-    ultimate: { duration: 1.05, active: .38, reach: cross ? 270 : 240, damage: 30, knock: 160, stun: .65, cost: 100 },
-  };
+  if (f.down || f.stun > 0 || f.hp <= 0) return;
   const chain=key==='light'?(f.chainTime>0?f.chain%4+1:1):0;
-  const m = { ...(key==='light'?LIGHTS[f.type][chain-1]:moves[key]) };
+  const m = { ...(key==='light'?LIGHTS[f.type][chain-1]:SKILLS[f.type][key]) };
   if (f.energy < (m.cost || 0)) return;
   f.energy -= m.cost || 0;
   if(key==='light') {f.chain=chain;f.chainTime=m.duration+.55;if(chain===1)f.mark=null;}
   else breakChain(f);
   const face=f.face||1;
   const targetX=key==='light'&&chain===4&&f.type==='stick'&&f.mark?f.mark.x:
-    clampX(f.x+face*Math.max(90,Math.min(220,enemy?(enemy.x-f.x)*face:180)));
-  f.attack = { ...m, key, chain, face, originX:f.x, originY:f.y, targetX, id: ++f.attackSerial, age: 0, hit: false }; f.cooldown = m.duration; f.action = key;
+    clampX(f.x+face*Math.max(90,Math.min(key==='ultimate'?(f.type==='stick'?420:320):220,enemy?(enemy.x-f.x)*face:180)));
+  f.attack = { ...m, key, chain, face, originX:f.x, originY:f.y, targetX, id: ++f.attackSerial, age: 0, hit: false, nextStrike:0 }; f.cooldown = m.duration; f.action = key;
 }
 function effect(room, data) {
   room.effects.push({id: ++room.effectSerial, life: 24, maxLife: 24, ...data});
@@ -60,7 +75,7 @@ function bodyStep(f, room) {
   const wasAirborne = f.y > 0;
   f.x = Math.max(60, Math.min(1140, f.x + f.knockVx * DT));
   f.knockVx *= Math.exp(-9 * DT);
-  const scripted=!f.down&&['retreat','dive','bounce'].includes(f.attack?.motion);
+  const scripted=!f.down&&['retreat','dive','bounce','thunder','storm','meteor'].includes(f.attack?.motion);
   if(!scripted){f.y = Math.max(0, f.y + f.vy * DT);f.vy -= 1600 * DT;}
   if (!f.y && f.vy < 0) f.vy = 0;
   if (wasAirborne && !f.y) {
@@ -102,18 +117,55 @@ function step(room) {
     const center=Math.max(93,Math.min(1107,(left.x+right.x)/2));
     left.x=center-33;right.x=center+33;
   }
+  const armor=room.fighters.map(hasLightArmor);
   for (const {i,a} of hits) {
     const f = room.fighters[i], e = room.fighters[1-i];
     const blocked = e.action === 'block' && a.key !== 'ultimate';
     e.hp = Math.max(0,e.hp - (blocked ? Math.ceil(a.damage*.15) : a.damage));
-    e.stun = blocked ? .10 : a.stun; e.knockVx = (a.face||f.face) * a.knock * (blocked ? 2 : 8);
-    if (!blocked) { breakChain(e);e.attack=null; e.action='hit'; e.dash=0; if(a.launch || a.key==='ultimate' || e.hp<=0) { e.vy=a.launch?470:260; e.down='air'; } }
-    f.energy=Math.min(100,f.energy+12); e.energy=Math.min(100,e.energy+7); f.combo = e.stun > 0 ? f.combo+1 : 1;
-    room.hitstop = blocked ? .025 : .055;
-    effect(room, {x:e.x,y:e.y+65,blocked,kind:a.key,type:f.type,face:f.face,heavy:a.key!=='light'||a.chain===4});
+    const armored=a.key==='light'&&armor[1-i]&&e.hp>0;
+    if(!armored){
+      e.stun = blocked ? .10 : Math.max(e.stun,a.stun);e.bufferTime=0;e.buffer=null;
+      e.knockVx = (a.face||f.face) * a.knock * (blocked ? 2 : 8);
+      if (!blocked) {breakChain(e);e.attack=null;e.action='hit';e.dash=0;
+        if(a.launch || e.hp<=0) {e.vy=a.launch?470:260;e.down='air';}
+      }
+    }
+    f.energy=Math.min(100,f.energy+(a.key==='light'?6:a.key==='ultimate'?0:10));
+    e.energy=Math.min(100,e.energy+(a.key==='light'?4:8));f.combo=e.stun>0?f.combo+1:1;
+    room.hitstop=Math.max(room.hitstop||0,armored?0:blocked?.025:a.final?.10:.045);
+    effect(room,{x:e.x,y:e.y+65,blocked,armored,kind:a.key,type:f.type,face:a.face||f.face,color:a.color,heavy:a.key!=='light'||a.chain===4,final:!!a.final});
   }
   for (const f of room.fighters) if (!room.fighters.find(e=>e!==f).stun) f.combo=0;
   if (room.fighters.some(f=>f.hp<=0) || room.time<=0) { room.phase='over'; const [a,b]=room.fighters; room.winner=a.hp===b.hp?-1:a.hp>b.hp?0:1; room.players.forEach(p=>p.ready=!!p.dummy); room.fighters.forEach(f=>{ f.attack=null; f.projectile=null; f.mark=null; f.input={}; f.dash=0; if(f.hp>0&&!f.down)f.action='idle'; }); }
+}
+
+function advanceSkill(f,enemy,room,a){
+  const t=a.age;
+  if(t<=DT)effect(room,{kind:'cast',x:f.x,y:f.y+55,color:a.color,heavy:false});
+  if(a.motion==='gale'||a.motion==='magma'){
+    const begin=a.motion==='gale'?.10:.15,span=a.motion==='gale'?.42:.38,distance=a.motion==='gale'?245:270;
+    f.x+=a.face*distance*(ease((t-begin)/span)-ease((t-DT-begin)/span));
+  }else if(a.motion==='thunder'){
+    const u=unit((t-.12)/.80);f.y=u===1?0:a.originY*(1-u)+155*Math.sin(Math.PI*u);f.vy=0;
+  }else if(a.motion==='storm'||a.motion==='meteor'){
+    const meteor=a.motion==='meteor',rise=meteor?.60:.35,apex=meteor?1:.65,fall=meteor?1.40:1.60,impact=meteor?1.80:1.85;
+    const peak=meteor?235:205,hoverX=meteor?a.targetX:clampX(a.targetX-a.face*80);
+    if(t<rise){f.y=a.originY;}
+    else if(t<apex){const u=ease((t-rise)/(apex-rise));f.x=a.originX+(hoverX-a.originX)*u;f.y=a.originY+(peak-a.originY)*u;}
+    else if(t<fall){f.x=hoverX;f.y=peak;}
+    else if(t-DT<impact){const u=ease((t-fall)/(impact-fall));f.x=hoverX+(a.targetX-hoverX)*u;f.y=peak*(1-u);}
+    else f.y=0;
+    f.vy=0;
+  }
+  const strike=a.strikes[a.nextStrike];if(!strike||t<strike.at)return null;
+  a.nextStrike++;
+  const x=strike.anchor==='target'?a.targetX:strike.anchor==='origin'?clampX(a.originX+a.face*strike.offset):f.x;
+  const y=strike.anchor?0:f.y;
+  effect(room,{kind:a.motion,x,y,color:a.color,face:a.face,heavy:true,final:!!strike.final,life:strike.final?42:24,maxLife:strike.final?42:24});
+  const ahead=(enemy.x-x)*a.face;
+  if(Math.abs(enemy.x-x)<strike.reach&&(strike.anchor||ahead>=-20)&&Math.abs(enemy.y-y)<(strike.height||110)&&!enemy.inv&&!['floor','rise'].includes(enemy.down))
+    return {...a,...strike,hitX:x,hitY:y};
+  return null;
 }
 
 function advanceFighter(f, enemy, room) {
@@ -126,7 +178,8 @@ function advanceFighter(f, enemy, room) {
     bodyStep(f, room);
     const pressed = k => (f.pulses?.[k] || (input[k] && !f.previous[k]));
     f.bufferTime = Math.max(0, (f.bufferTime || 0) - DT);
-    for (const k of ['light','skill','special','ultimate']) if (pressed(k)) {
+    if(f.stun||f.down){f.bufferTime=0;f.buffer=null;}
+    for (const k of ['light','skill','special','ultimate']) if (!f.stun&&!f.down&&pressed(k)) {
       if(k==='light'&&f.attack?.key==='light'&&f.attack.chain<4)f.attack.queued=true;
       else {f.buffer=k;f.bufferTime=.18;}
     }
@@ -158,7 +211,8 @@ function advanceFighter(f, enemy, room) {
         f.vy=0;
       }
       if (a.rush && a.age < .32) f.x += a.face * a.rush * DT;
-      if (!a.hit && a.age >= a.active) {
+      if(a.key!=='light')hit=advanceSkill(f,enemy,room,a);
+      if (a.key==='light'&&!a.hit && a.age >= a.active) {
         a.hit=true;
         if(a.motion==='retreat') {
           f.projectile={key:'light',chain:3,name:'手里剑',face:a.face,x:f.x,y:f.y+65,fromX:f.x,fromY:f.y+65,targetX:a.targetX,age:0,duration:.40,damage:a.damage,knock:a.knock,stun:a.stun};
@@ -189,6 +243,6 @@ function advanceFighter(f, enemy, room) {
   return hit;
 }
 
-const api={DT,TYPES,LIGHTS,fighter,reset,startAttack,step,advanceFighter};
+const api={DT,TYPES,LIGHTS,SKILLS,hasLightArmor,fighter,reset,startAttack,step,advanceFighter};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;else root.InkDuelCore=api;
 })(typeof window==='undefined'?globalThis:window);

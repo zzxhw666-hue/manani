@@ -4,3 +4,5 @@
 @media(max-height:550px) and (min-width:650px){.battle-nav{min-height:40px}.combat-dock{padding-top:7px}.battle-hint{padding:6px}.stage{width:min(100%,calc((100dvh - 125px)*2.142857))}.movement{display:none}.skill-dock button{padding:5px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 .combat-dock>.quiet:hover{background:#344734;color:#edf0df}.skill-dock button:hover:not(:disabled){background:#3b503a;border-color:#91a77d}
+
+.skill-dock .colored-skill{border-top:3px solid var(--move-color);box-shadow:inset 0 2px 16px #0002}.skill-dock .colored-skill kbd{color:var(--move-color);background:#15241e;border-color:var(--move-color)}.skill-dock .colored-skill.available{box-shadow:0 0 20px color-mix(in srgb,var(--move-color) 30%,transparent);border-color:var(--move-color)}
