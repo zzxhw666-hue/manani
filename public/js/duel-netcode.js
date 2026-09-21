@@ -2,6 +2,17 @@
 (function(root){
   const core=typeof module!=='undefined'&&module.exports?require('./duel-core'):root.InkDuelCore;
   const copy=f=>({...f,projectile:f.projectile?{...f.projectile}:null,mark:f.mark?{...f.mark}:null,input:{...f.input},previous:{...f.previous},pulses:{...f.pulses},attack:f.attack?{...f.attack}:null});
+  class InputOutbox {
+    constructor(){this.clear();}
+    clear(input={}){this.pending=null;this.previous={...input};}
+    get length(){return this.pending?1:0;}
+    push(command){
+      const pulses={...this.pending?.pulses};
+      for(const key of ['jump','dash','light','skill','special','ultimate'])if(command.input[key]&&!this.previous[key])pulses[key]=true;
+      this.previous={...command.input};this.pending={seq:command.seq,input:{...command.input},pulses};
+    }
+    shift(){const command=this.pending;this.pending=null;return command;}
+  }
   class Predictor {
     constructor(){this.reset();}
     reset(){this.samples=[];this.inputs=[];this.state=null;this.at=0;this.correction=null;this.index=undefined;this.rtt=0;}
@@ -29,10 +40,15 @@
     build(now,index,rtt=0){
       const state=this.state;if(!state||state.fighters.length<2)return state;
       const out={...state,fighters:state.fighters.map(copy),uiOverlay:true,localIndex:index};
-      if(state.paused||now-this.at>500||state.phase!=='fight'||state.hitstop>0)return out;
+      if(state.paused||now-this.at>500||state.phase!=='fight')return out;
       const local=out.fighters[index],enemy=out.fighters[1-index];
-      const start=this.at-Math.min(100,Math.max(0,rtt/2));
-      const horizon=Math.min(150,Math.max(0,now-start));
+      const oneWay=Math.min(250,Math.max(0,rtt/2));
+      const snapshotAge=Math.max(0,now-this.at+oneWay);
+      out.hitstop=Math.max(0,(state.hitstop||0)-snapshotAge/1000);
+      if(out.hitstop>0)return out;
+      const horizon=Math.min(350,Math.max(0,snapshotAge-(state.hitstop||0)*1000));
+      // Anchor the bounded replay at NOW, so a delayed packet never excludes fresh inputs.
+      const start=now-horizon;
       const commands=this.inputs.filter(i=>i.seq>(state.ack?.[index]||0));let next=0;
       const simulation={effects:[],effectSerial:0};
       for(let elapsed=0;elapsed+1000/60<=horizon;elapsed+=1000/60){
@@ -57,5 +73,5 @@
       return out;
     }
   }
-  if(typeof module!=='undefined'&&module.exports)module.exports={Predictor};else root.InkDuelPredictor=Predictor;
+  if(typeof module!=='undefined'&&module.exports)module.exports={Predictor,InputOutbox};else {root.InkDuelPredictor=Predictor;root.InkDuelInputOutbox=InputOutbox;}
 })(typeof window==='undefined'?globalThis:window);

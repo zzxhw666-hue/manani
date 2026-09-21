@@ -6,3 +6,4 @@
 .combat-dock>.quiet:hover{background:#344734;color:#edf0df}.skill-dock button:hover:not(:disabled){background:#3b503a;border-color:#91a77d}
 
 .skill-dock .colored-skill{border-top:3px solid var(--move-color);box-shadow:inset 0 2px 16px #0002}.skill-dock .colored-skill kbd{color:var(--move-color);background:#15241e;border-color:var(--move-color)}.skill-dock .colored-skill.available{box-shadow:0 0 20px color-mix(in srgb,var(--move-color) 30%,transparent);border-color:var(--move-color)}
+#network{white-space:nowrap}.battle-options{flex-wrap:wrap;justify-content:flex-end}@media(max-width:650px){.battle-nav{flex-wrap:wrap;padding:5px 0}.battle-nav #network{display:inline-block;font-size:10px}.battle-options button{padding:4px}}

@@ -36,7 +36,7 @@ test('重击浮空后落地倒下，倒地期间不能出招，起身后恢复�
   victim.energy=100;startAttack(victim,'ultimate');assert.equal(victim.attack,null);assert.equal(victim.energy,100);
   const hp=victim.hp;attacker.x=victim.x-40;attacker.attack=null;startAttack(attacker,'light');advance(r,12);assert.equal(victim.hp,hp);
   for(let n=0;n<100&&victim.down;n++)step(r);
-  assert.equal(victim.down,null);assert.ok(victim.inv>0);startAttack(victim,'light');assert.ok(victim.attack);
+  assert.equal(victim.down,null);assert.ok(victim.wakeInv>0);startAttack(victim,'light');assert.ok(victim.attack);
 });
 test('KO 后仍模拟落地，败者保持倒下，重开恢复站姿',()=>{
   const r=room();r.fighters[1].hp=1;startAttack(r.fighters[0],'light');advance(r,10);

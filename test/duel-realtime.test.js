@@ -65,3 +65,33 @@ test('WebSocket 同步四段普攻、飞行手里剑与锁定落点',async t=>{
  const dive=(await client.wait(m=>m.type==='state'&&m.state.fighters[0].attack?.chain===4)).state.fighters[0];assert.equal(dive.attack.targetX,projectile.mark.x);assert.equal(dive.attack.motion,'dive');
  await post('leave',auth);
 });
+test('400ms RTT 且快照延迟时，最新按键仍在下一帧预测，松键不会被旧输入覆盖',()=>{
+ const p=new Predictor();p.receive(snapshot(),0);p.input(1,{light:true},160);
+ assert.ok(p.render(180,0,400).fighters[0].attack);
+ const move=new Predictor();move.receive(snapshot(),0);move.input(1,{right:true},160);
+ assert.ok(move.render(180,0,400).fighters[0].x>370);move.input(2,{},200);
+ const stopped=move.render(240,0,400);assert.equal(stopped.fighters[0].input.right,undefined);
+ assert.equal(move.render(700,0,400).fighters[0].x,370);
+});
+test('旧快照的短暂停帧不会冻结客户端直到下一份网络快照',()=>{
+ const state=snapshot();state.hitstop=.045;const p=new Predictor();p.receive(state,0);p.input(1,{right:true},60);
+ assert.ok(p.render(100,0,0).fighters[0].x>370);assert.equal(p.render(100,0,0).hitstop,0);
+});
+test('兼容连接只保留一份最新输入，同时保留快速点按脉冲',()=>{
+ const {InputOutbox}=require('../public/js/duel-netcode'),box=new InputOutbox();
+ box.push({seq:1,input:{right:true}});const inFlight=box.shift();
+ for(let seq=2;seq<32;seq++)box.push({seq,input:{right:seq%2===0,light:seq===6,skill:seq===10}});
+ box.push({seq:32,input:{}});assert.equal(box.length,1);const next=box.shift();
+ assert.equal(next.seq,32);assert.deepEqual(next.input,{});assert.deepEqual(next.pulses,{light:true,skill:true});assert.equal(inFlight.seq,1);assert.equal(box.length,0);
+ box.clear({light:true});box.push({seq:33,input:{light:true}});assert.deepEqual(box.shift().pulses,{});
+});
+test('HTTP 合并输入在松键状态下仍触发一次普攻，过期序号不会重放脉冲',async t=>{
+ const {post,connect}=await setup(t),auth=await post('create',{});await post('add-dummy',auth);const c=await connect(auth);
+ await post('reset-training',auth);await c.wait(m=>m.type==='state'&&m.state.phase==='fight');
+ await post('input',{...auth,seq:10,input:{},pulses:{light:true,hp:true}});
+ const v=(await c.wait(m=>m.type==='state'&&m.state.fighters[0].attack?.chain===1)).state;
+ assert.equal(v.fighters[0].input.light,false);assert.equal(v.fighters[0].attackSerial,1);
+ await post('input',{...auth,seq:9,input:{},pulses:{light:true}});await delay(120);
+ const latest=c.messages.filter(m=>m.type==='state').at(-1).state;assert.equal(latest.fighters[0].attackSerial,1);
+ await post('leave',auth);
+});

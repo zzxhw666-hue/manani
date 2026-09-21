@@ -3,9 +3,10 @@ const $=id=>document.getElementById(id);
 const canvas=$('arena'),predictor=new InkDuelPredictor();
 const keyMap={KeyA:'left',KeyD:'right',KeyW:'jump',Space:'dash',KeyS:'block',KeyJ:'light',KeyU:'skill',KeyI:'special',KeyO:'ultimate'};
 let auth=null,state=null,keys={},faction='stick',socket=null,stream=null,seq=0,rtt=0;
+let fps=0,fpsAt=0,fpsFrames=0,lowEffects=false;
 let receivedAt=0,lastUI=0,screen='',resultAt=0,renderer=null,sound=null,muted=false;
-let generation=0,reconnectTimer=0,fallbackTimer=0,toastTimer=0,httpInputBusy=false,httpInputQueue=[],transport='connecting';
-try{auth=JSON.parse(sessionStorage.getItem('ink-duel'));$('name').value=localStorage.getItem('ink-name')||'';muted=localStorage.getItem('ink-muted')==='1';}catch{}
+let generation=0,reconnectTimer=0,fallbackTimer=0,toastTimer=0,httpInputBusy=false,httpInputQueue=new InkDuelInputOutbox(),transport='connecting';
+try{auth=JSON.parse(sessionStorage.getItem('ink-duel'));$('name').value=localStorage.getItem('ink-name')||'';muted=localStorage.getItem('ink-muted')==='1';lowEffects=localStorage.getItem('ink-low-effects')==='1';}catch{}
 $('code').value=new URLSearchParams(location.search).get('room')||'';
 const text=(id,value)=>{const el=$(id);if(el.textContent!==value)el.textContent=value;};
 function toast(message){clearTimeout(toastTimer);text('toast',message);$('toast').hidden=false;toastTimer=setTimeout(()=>$('toast').hidden=true,6000);}
@@ -23,7 +24,7 @@ function showScreen(next){
   if(next==='battle'){if(!renderer)renderer=new InkDuelRenderer(canvas,hitSound);canvas.focus({preventScroll:true});}
   else window.scrollTo(0,0);
 }
-function disconnect(){generation++;httpInputQueue=[];clearTimeout(reconnectTimer);clearTimeout(fallbackTimer);socket?.close();socket=null;stream?.close();stream=null;transport='connecting';}
+function disconnect(){generation++;httpInputQueue.clear(keys);clearTimeout(reconnectTimer);clearTimeout(fallbackTimer);socket?.close();socket=null;stream?.close();stream=null;transport='connecting';}
 function clearRoom(message){disconnect();for(const dialog of document.querySelectorAll('dialog[open]'))dialog.close();if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});auth=null;state=null;keys={};seq=0;predictor.reset();try{sessionStorage.removeItem('ink-duel');}catch{}showScreen('lobby');if(message)toast(message);}
 function receive(next){
   if(!auth)return;
@@ -49,7 +50,7 @@ function connect(){
     ws.onmessage=e=>{
       if(gen!==generation||ws!==socket)return;
       const msg=JSON.parse(e.data);
-      if(msg.type==='welcome'){seq=Math.max(seq,msg.seq||0);transport='ws';clearTimeout(fallbackTimer);stream?.close();stream=null;sendInput();ws.send(JSON.stringify({type:'ping',at:performance.now()}));}
+      if(msg.type==='welcome'){seq=Math.max(seq,msg.seq||0);transport='ws';httpInputQueue.clear(keys);clearTimeout(fallbackTimer);stream?.close();stream=null;sendInput();ws.send(JSON.stringify({type:'ping',at:performance.now()}));}
       if(msg.type==='state'){transport='ws';receive(msg.state);}
       if(msg.type==='pong'){const sample=performance.now()-msg.at;rtt=rtt?Math.round(rtt*.65+sample*.35):Math.round(sample);}
       if(msg.type==='closed')clearRoom(msg.message);
@@ -69,11 +70,11 @@ function sendInput(){
   if(!auth)return;
   const at=performance.now(),command={seq:++seq,input:{...keys}};predictor.input(seq,keys,at);
   if(socket?.readyState===WebSocket.OPEN&&transport==='ws')socket.send(JSON.stringify({type:'input',...command}));
-  else if(stream){httpInputQueue.push(command);if(httpInputQueue.length>32)httpInputQueue.splice(0,httpInputQueue.length-32);flushHttpInput();}
+  else if(stream){httpInputQueue.push(command);flushHttpInput();}
 }
 function flushHttpInput(){
   if(httpInputBusy||!auth||!httpInputQueue.length)return;
-  if(transport==='ws'){httpInputQueue=[];return;}
+  if(transport==='ws'){httpInputQueue.clear(keys);return;}
   httpInputBusy=true;const gen=generation,command=httpInputQueue.shift();
   request('input',command).catch(e=>{if(gen===generation&&/凭证/.test(e.message))clearRoom(e.message);}).finally(()=>{httpInputBusy=false;flushHttpInput();});
 }
@@ -111,6 +112,8 @@ for(const dialog of document.querySelectorAll('dialog'))dialog.addEventListener(
 $('fullscreen').onclick=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await $('battle-screen').requestFullscreen();}catch{toast('当前浏览器不支持全屏，可放大窗口游玩');}};
 function muteLabel(){text('mute',muted?'音效 关':'音效 开');$('mute').setAttribute('aria-pressed',String(muted));$('mute').setAttribute('aria-label',muted?'开启音效':'关闭音效');}
 $('mute').onclick=()=>{muted=!muted;try{localStorage.setItem('ink-muted',String(muted));}catch{}unlockSound();muteLabel();};muteLabel();
+function qualityLabel(){text('quality',lowEffects?'画质 流畅':'画质 标准');$('quality').setAttribute('aria-pressed',String(lowEffects));}
+$('quality').onclick=()=>{lowEffects=!lowEffects;try{localStorage.setItem('ink-low-effects',String(lowEffects));}catch{}qualityLabel();};qualityLabel();
 for(const b of document.querySelectorAll('[data-move]')){
   b.onpointerdown=e=>{if(!canPlay())return;e.preventDefault();b.setPointerCapture(e.pointerId);setKey(b.dataset.move,true);};
   b.onlostpointercapture=b.onpointerup=b.onpointercancel=()=>setKey(b.dataset.move,false);
@@ -130,18 +133,19 @@ function updateUI(){
   $('ready').disabled=!canReady;$('rematch').disabled=!canReady;text('ready',me?.ready?'已准备 · 等待对手':'准备开战 →');text('rematch',me?.ready?'已准备 · 等待对手':'准备再战');
   $('dummy').hidden=auth.index!==0||(state.players.length===2&&!state.training);text('dummy',state.training?'移除训练假人':'添加训练假人');
   text('room-status',state.players.length===1?'把房间码分享给朋友，或添加假人独自练习。':me?.ready?'你已准备，等待对方准备。':'对手已入场，准备好就开始吧。');
-  const quality=stale?'连接中断':transport==='ws'?`${Math.round(rtt)} ms`:transport==='fallback'?'兼容连接':'正在重连';text('network',quality);$('network').classList.toggle('warning',stale||rtt>120||transport!=='ws');
+  const quality=(stale?'连接中断':transport==='ws'?`${Math.round(rtt)} ms`:transport==='fallback'?'兼容连接':'正在重连')+(fps?` · ${fps} FPS`:'');text('network',quality);$('network').classList.toggle('warning',stale||rtt>120||transport!=='ws'||(fps>0&&fps<45));$('network').title=transport==='fallback'?'当前使用 SSE / HTTP 兼容连接，建议检查服务器 WebSocket 转发。':'ms 是网络往返时间；FPS 是本机画面帧率。ms 低但 FPS 低时，可切换流畅画质。';
   $('reconnecting').hidden=!(battle&&(stale||state.paused));
   $('result').hidden=state.phase!=='over'||performance.now()-resultAt<700;
   if(state.phase==='over'){text('result-title',state.winner===-1?'势均力敌':state.winner===auth.index?'此战告捷':'下次再战');text('result-detail',state.winner===-1?'双方生命相同，本局平局。':`${state.players[state.winner]?.type==='stick'?'火柴人 · 疾风':'叉叉怪 · 磐石'} 赢得本局`);}
   $('training-reset').hidden=!state.training||auth.index!==0;
   const f=state.fighters[auth.index],moves=InkDuelCore.SKILLS[f.type],names=[f.type==='cross'?'磐石四式':'疾风四式',moves.skill.name,moves.special.name,moves.ultimate.name];
-  document.querySelectorAll('[data-move]').forEach((b,i)=>{b.querySelector('span').textContent=i===0&&f.attack?.key==='light'?f.attack.name:names[i];if(i===0)b.querySelector('small').textContent=f.attack?.key==='light'?`${f.attack.chain}/4 · ${f.attack.chain===4?'终结段':f.attack.queued?'已衔接':'J 接下一段'}`:'四段连击';b.disabled=!canPlay()||f.energy<[0,22,30,100][i];b.classList.toggle('available',i===3&&f.energy>=100);if(i>0){b.style.setProperty('--move-color',moves[b.dataset.move].color);b.classList.add('colored-skill');b.title=names[i]+' · 技能施放抵抗普攻打断';}});
-  text('battle-hint',f.stun>0||f.down?'受击僵直 / 倒地 · 暂时无法移动、攻击或释放技能':InkDuelCore.hasLightArmor(f)?'技能霸体 · 普攻仍会扣血，但无法打断；技能命中可以打断':rtt>120?'网络延迟偏高，建议双方使用稳定网络，并选择较近的服务器。':state.training?'每按一次 J 衔接一段 · 训练不限时 · 重置可回满生命与气':'普攻压制 / 技能反制 · U / I 技能霸体 · O 大招破防');
+  document.querySelectorAll('[data-move]').forEach((b,i)=>{b.querySelector('span').textContent=i===0&&f.attack?.key==='light'?f.attack.name:names[i];if(i===0)b.querySelector('small').textContent=f.attack?.key==='light'?`${f.attack.chain}/4 · ${f.attack.chain===4?'终结段':f.attack.queued?'已衔接':'J 接下一段'}`:'A/D 选向 · 四段';const cost=i===3&&f.confirmTime>0&&['skill','special'].includes(f.attack?.key)?100-f.attack.cost:[0,22,30,100][i];if(i===3)b.querySelector('small').textContent=cost<100?`${cost} 气 · 追击`:'100 气';b.disabled=!canPlay()||f.energy<cost;b.classList.toggle('available',i===3&&f.energy>=cost);if(i>0){b.style.setProperty('--move-color',moves[b.dataset.move].color);b.classList.add('colored-skill');b.title=names[i]+' · 技能施放抵抗普攻打断';}});
+  text('battle-hint',f.confirmTime>0&&f.attack?(f.attack.key==='light'?'命中确认 · U / I / O 取消收招追击':'命中确认 · O 取消收招接奥义'):f.wakeInv>0?'起身保护中 · 可移动，主动出招结束保护':f.stun>0||f.down?'受击僵直 / 倒地 · 暂时无法移动、攻击或释放技能':InkDuelCore.hasLightArmor(f)?'技能霸体 · 普攻仍会扣血，但无法打断；技能命中可以打断':fps>0&&fps<45?'画面帧率偏低，可切换「画质 流畅」减轻特效开销':rtt>120?'响应偏慢 · 查看 ms 与 FPS，可先切换流畅画质测试':state.training?'A / D + J 每段选向 · 命中接 U / I，技能命中接 O · 重置回满生命与气':'普攻压制 / 技能反制 · U / I 技能霸体 · O 大招破防');
 }
 function frame(now){
+  if(screen==='battle'&&!document.hidden){if(!fpsAt)fpsAt=now;fpsFrames++;if(now-fpsAt>=1000){fps=Math.round((fpsFrames-1)*1000/(now-fpsAt));fpsFrames=1;fpsAt=now;}}else{fpsAt=0;fpsFrames=0;fps=0;}
   if(now-lastUI>100){lastUI=now;updateUI();}
-  if(screen==='battle'&&state&&renderer)renderer.render(now,predictor.render(now,auth.index,rtt),auth.index,now-receivedAt>1500);
+  if(screen==='battle'&&state&&renderer){renderer.lowEffects=lowEffects;renderer.render(now,predictor.render(now,auth.index,rtt),auth.index,now-receivedAt>1500);}
   requestAnimationFrame(frame);
 }
 showScreen('lobby');if(auth)connect();requestAnimationFrame(frame);
